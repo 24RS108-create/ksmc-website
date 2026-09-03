@@ -17,13 +17,7 @@ final class ImageUploader
     {
         $files = self::normalize($rawFiles);
         $errors = [];
-
-        if (count($files) > Uploads::MAX_FILE_COUNT) {
-            $errors[] = '画像は' . Uploads::MAX_FILE_COUNT . '枚以内にしてください。';
-        }
-
         $validated = [];
-        $totalBytes = 0;
 
         foreach ($files as $file) {
             if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -48,8 +42,6 @@ final class ImageUploader
                 continue;
             }
 
-            $totalBytes += $file['size'];
-
             $validated[] = [
                 'name' => $file['name'],
                 'tmp_name' => $file['tmp_name'],
@@ -58,12 +50,33 @@ final class ImageUploader
             ];
         }
 
-        if ($totalBytes > Uploads::MAX_TOTAL_BYTES) {
+        return ['files' => $errors === [] ? $validated : [], 'errors' => $errors];
+    }
+
+    /**
+     * 新規アップロード分と既存分を合わせた枚数・合計サイズが上限内かを確認する。
+     * 投稿作成時は $existingCount / $existingBytes は 0 のままでよい。
+     *
+     * @param array<int, array{name: string, tmp_name: string, size: int, extension: string}> $validatedFiles
+     * @return array<int, string>
+     */
+    public static function checkAggregateLimits(array $validatedFiles, int $existingCount = 0, int $existingBytes = 0): array
+    {
+        $errors = [];
+
+        $newCount = count($validatedFiles);
+        $newBytes = array_sum(array_column($validatedFiles, 'size'));
+
+        if ($existingCount + $newCount > Uploads::MAX_FILE_COUNT) {
+            $errors[] = '画像は' . Uploads::MAX_FILE_COUNT . '枚以内にしてください。';
+        }
+
+        if ($existingBytes + $newBytes > Uploads::MAX_TOTAL_BYTES) {
             $limitMb = (int) (Uploads::MAX_TOTAL_BYTES / 1024 / 1024);
             $errors[] = "画像の合計サイズが上限（{$limitMb}MB）を超えています。";
         }
 
-        return ['files' => $errors === [] ? $validated : [], 'errors' => $errors];
+        return $errors;
     }
 
     /**
@@ -97,6 +110,27 @@ final class ImageUploader
         }
 
         return $stored;
+    }
+
+    /**
+     * 投稿削除時に、保存済み画像ファイル一式をディスクから削除する。
+     */
+    public static function deletePostDirectory(int $postId): void
+    {
+        $targetDir = PUBLIC_PATH . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, Uploads::UPLOAD_SUBDIR)
+            . DIRECTORY_SEPARATOR . $postId;
+
+        if (!is_dir($targetDir)) {
+            return;
+        }
+
+        foreach (glob($targetDir . DIRECTORY_SEPARATOR . '*') ?: [] as $file) {
+            if (is_file($file)) {
+                unlink($file);
+            }
+        }
+
+        rmdir($targetDir);
     }
 
     /**

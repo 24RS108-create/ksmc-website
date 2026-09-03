@@ -70,4 +70,67 @@ final class Post
 
         return $row === false ? null : new self($row);
     }
+
+    /**
+     * @return array<int, self>
+     */
+    public static function findByUserId(int $userId): array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT * FROM posts WHERE user_id = :user_id ORDER BY created_at DESC'
+        );
+        $stmt->execute(['user_id' => $userId]);
+
+        $posts = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $posts[] = new self($row);
+        }
+
+        return $posts;
+    }
+
+    /**
+     * 投稿の編集（FR-06）。$status は 'draft' か 'published' のみを受け付ける。
+     */
+    public function update(string $title, string $body, string $status): void
+    {
+        if (!in_array($status, ['draft', 'published'], true)) {
+            throw new \InvalidArgumentException('不正な投稿状態です。');
+        }
+
+        // 下書き→公開に変わる時だけ公開日時を設定する。既に公開済みなら日時は保持する。
+        if ($status === 'published' && $this->publishedAt === null) {
+            $publishedAtExpr = 'NOW()';
+        } elseif ($status === 'draft') {
+            $publishedAtExpr = 'NULL';
+        } else {
+            $publishedAtExpr = 'published_at';
+        }
+
+        $stmt = Database::connection()->prepare(
+            "UPDATE posts
+             SET title = :title, body = :body, status = :status, published_at = {$publishedAtExpr}
+             WHERE id = :id"
+        );
+        $stmt->execute([
+            'title' => $title,
+            'body' => $body,
+            'status' => $status,
+            'id' => $this->id,
+        ]);
+
+        $refreshed = self::findById($this->id);
+        if ($refreshed !== null) {
+            $this->title = $refreshed->title;
+            $this->body = $refreshed->body;
+            $this->status = $refreshed->status;
+            $this->publishedAt = $refreshed->publishedAt;
+        }
+    }
+
+    public static function delete(int $id): void
+    {
+        $stmt = Database::connection()->prepare('DELETE FROM posts WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+    }
 }

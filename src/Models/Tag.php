@@ -50,4 +50,23 @@ final class Tag
             $stmt->execute(['post_id' => $postId, 'tag_id' => $tagId]);
         }
     }
+
+    public static function detachAllFromPost(int $postId): void
+    {
+        $stmt = Database::connection()->prepare('DELETE FROM post_tags WHERE post_id = :post_id');
+        $stmt->execute(['post_id' => $postId]);
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public static function findIdsByPostId(int $postId): array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT tag_id FROM post_tags WHERE post_id = :post_id'
+        );
+        $stmt->execute(['post_id' => $postId]);
+
+        return array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
+    }
 }
