@@ -18,7 +18,11 @@ spl_autoload_register(static function (string $class): void {
 
 $envFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . '.env';
 if (is_file($envFile)) {
-    foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+    $bom = "\xEF\xBB\xBF";
+    foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $lineNumber => $line) {
+        if ($lineNumber === 0 && str_starts_with($line, $bom)) {
+            $line = substr($line, strlen($bom));
+        }
         $line = trim($line);
         if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
             continue;
@@ -33,4 +37,8 @@ if (is_file($envFile)) {
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+}
+
+if (!defined('PUBLIC_PATH')) {
+    define('PUBLIC_PATH', dirname(__DIR__) . DIRECTORY_SEPARATOR . 'public');
 }

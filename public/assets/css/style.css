@@ -67,3 +67,12 @@ button,
     color: #666;
     font-size: 0.85em;
 }
+
+.checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 12px;
+    margin-bottom: 4px;
+    font-weight: normal;
+}
