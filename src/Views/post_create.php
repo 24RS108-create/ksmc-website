@@ -40,13 +40,14 @@ $maxTotalMb = (int) (Uploads::MAX_TOTAL_BYTES / 1024 / 1024);
 
     <div class="form-row">
         <label for="body">本文</label>
-        <textarea id="body" name="body" required><?= View::e($formBody) ?></textarea>
+        <textarea id="body" name="body"><?= View::e($formBody) ?></textarea>
+        <p class="hint">公開するには入力が必要です（下書き保存は未入力でも可）。</p>
     </div>
 
     <div class="form-row">
         <label for="images">画像</label>
-        <input type="file" id="images" name="images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple required>
-        <p class="hint">jpg / png / gif / webp、合計<?= $maxTotalMb ?>MBまで、最大<?= Uploads::MAX_FILE_COUNT ?>枚。</p>
+        <input type="file" id="images" name="images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
+        <p class="hint">jpg / png / gif / webp、合計<?= $maxTotalMb ?>MBまで、最大<?= Uploads::MAX_FILE_COUNT ?>枚。公開するには1枚以上必要です（下書き保存は未選択でも可）。</p>
     </div>
 
     <?php if (!empty($tags)): ?>
@@ -68,6 +69,7 @@ $maxTotalMb = (int) (Uploads::MAX_TOTAL_BYTES / 1024 / 1024);
     </div>
 
     <div class="form-actions">
-        <button type="submit">投稿する</button>
+        <button type="submit" name="action" value="draft" class="button-secondary">下書き保存</button>
+        <button type="submit" name="action" value="publish">公開する</button>
     </div>
 </form>

@@ -41,6 +41,8 @@ body {
 
 .form-actions {
     margin-top: 24px;
+    display: flex;
+    gap: 8px;
 }
 
 button,
@@ -75,4 +77,10 @@ button,
     margin-right: 12px;
     margin-bottom: 4px;
     font-weight: normal;
+}
+
+.button-secondary {
+    background-color: #fff;
+    color: #2c6e91;
+    border: 1px solid #2c6e91;
 }

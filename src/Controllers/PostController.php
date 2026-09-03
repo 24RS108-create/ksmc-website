@@ -36,13 +36,16 @@ final class PostController
     {
         $user = $this->requirePostableUser();
 
+        $action = (string) ($_POST['action'] ?? '');
+        $status = $action === 'publish' ? 'published' : 'draft';
+
         $postTitle = trim((string) ($_POST['title'] ?? ''));
         $body = trim((string) ($_POST['body'] ?? ''));
         $newTagsRaw = (string) ($_POST['new_tags'] ?? '');
         $selectedTagIds = array_map('intval', (array) ($_POST['tag_ids'] ?? []));
         $errors = [];
 
-        if (!Csrf::verify($_POST['csrf_token'] ?? null)) {
+        if (!in_array($action, ['draft', 'publish'], true) || !Csrf::verify($_POST['csrf_token'] ?? null)) {
             $errors[] = '不正なリクエストです。もう一度お試しください。';
         }
         if ($postTitle === '') {
@@ -50,15 +53,19 @@ final class PostController
         } elseif (mb_strlen($postTitle) > 200) {
             $errors[] = 'タイトルは200文字以内で入力してください。';
         }
-        if ($body === '') {
-            $errors[] = '本文を入力してください。';
-        }
 
         $uploadResult = ImageUploader::validate($_FILES['images'] ?? []);
-        if ($uploadResult['files'] === [] && $uploadResult['errors'] === []) {
-            $errors[] = '画像を1枚以上アップロードしてください。';
-        }
         $errors = array_merge($errors, $uploadResult['errors']);
+
+        // 公開時のみ本文・画像を必須とする。下書きは未完成のまま保存できる（FR-05）。
+        if ($status === 'published') {
+            if ($body === '') {
+                $errors[] = '本文を入力してください。';
+            }
+            if ($uploadResult['files'] === [] && $uploadResult['errors'] === []) {
+                $errors[] = '画像を1枚以上アップロードしてください。';
+            }
+        }
 
         $existingTags = Tag::findAll();
         $existingTagIds = array_column($existingTags, 'id');
@@ -67,16 +74,7 @@ final class PostController
         $newTagNames = $this->parseTagNames($newTagsRaw);
 
         if (!empty($errors)) {
-            View::render('post_create', [
-                'title' => '作品投稿',
-                'errors' => $errors,
-                'notice' => null,
-                'formTitle' => $postTitle,
-                'formBody' => $body,
-                'formNewTags' => $newTagsRaw,
-                'selectedTagIds' => $selectedTagIds,
-                'tags' => $existingTags,
-            ]);
+            $this->renderForm($errors, null, $postTitle, $body, $newTagsRaw, $selectedTagIds, $existingTags);
             return;
         }
 
@@ -84,7 +82,7 @@ final class PostController
         $connection->beginTransaction();
 
         try {
-            $post = Post::createPublishedIndividual($user->id, $postTitle, $body);
+            $post = Post::createIndividual($user->id, $postTitle, $body, $status);
 
             $storedImages = ImageUploader::store($uploadResult['files'], $post->id);
             foreach ($storedImages as $index => $image) {
@@ -103,29 +101,20 @@ final class PostController
         } catch (\Throwable) {
             $connection->rollBack();
 
-            View::render('post_create', [
-                'title' => '作品投稿',
-                'errors' => ['投稿の保存に失敗しました。もう一度お試しください。'],
-                'notice' => null,
-                'formTitle' => $postTitle,
-                'formBody' => $body,
-                'formNewTags' => $newTagsRaw,
-                'selectedTagIds' => $selectedTagIds,
-                'tags' => $existingTags,
-            ]);
+            $this->renderForm(
+                ['投稿の保存に失敗しました。もう一度お試しください。'],
+                null,
+                $postTitle,
+                $body,
+                $newTagsRaw,
+                $selectedTagIds,
+                $existingTags
+            );
             return;
         }
 
-        View::render('post_create', [
-            'title' => '作品投稿',
-            'errors' => [],
-            'notice' => '作品を投稿しました。',
-            'formTitle' => '',
-            'formBody' => '',
-            'formNewTags' => '',
-            'selectedTagIds' => [],
-            'tags' => Tag::findAll(),
-        ]);
+        $notice = $status === 'published' ? '作品を公開しました。' : '下書きとして保存しました。';
+        $this->renderForm([], $notice, '', '', '', [], Tag::findAll());
     }
 
     private function requirePostableUser(): User
@@ -139,6 +128,32 @@ final class PostController
         }
 
         return $user;
+    }
+
+    /**
+     * @param array<int, string> $errors
+     * @param array<int, int> $selectedTagIds
+     * @param array<int, array{id: int, name: string}> $tags
+     */
+    private function renderForm(
+        array $errors,
+        ?string $notice,
+        string $formTitle,
+        string $formBody,
+        string $formNewTags,
+        array $selectedTagIds,
+        array $tags
+    ): void {
+        View::render('post_create', [
+            'title' => '作品投稿',
+            'errors' => $errors,
+            'notice' => $notice,
+            'formTitle' => $formTitle,
+            'formBody' => $formBody,
+            'formNewTags' => $formNewTags,
+            'selectedTagIds' => $selectedTagIds,
+            'tags' => $tags,
+        ]);
     }
 
     /**

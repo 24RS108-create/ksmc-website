@@ -28,18 +28,26 @@ final class Post
     }
 
     /**
-     * 個人の作品投稿を作成する（FR-04）。承認フローは無く即時公開する（FR-07）。
+     * 個人の作品投稿を作成する（FR-04）。$status は 'draft' か 'published' のみを受け付ける。
+     * 公開時は承認フローを介さず即時公開する（FR-05, FR-07）。
      */
-    public static function createPublishedIndividual(int $userId, string $title, string $body): self
+    public static function createIndividual(int $userId, string $title, string $body, string $status): self
     {
+        if (!in_array($status, ['draft', 'published'], true)) {
+            throw new \InvalidArgumentException('不正な投稿状態です。');
+        }
+
+        $publishedAtExpr = $status === 'published' ? 'NOW()' : 'NULL';
+
         $stmt = Database::connection()->prepare(
-            'INSERT INTO posts (user_id, post_type, title, body, status, published_at)
-             VALUES (:user_id, \'individual\', :title, :body, \'published\', NOW())'
+            "INSERT INTO posts (user_id, post_type, title, body, status, published_at)
+             VALUES (:user_id, 'individual', :title, :body, :status, {$publishedAtExpr})"
         );
         $stmt->execute([
             'user_id' => $userId,
             'title' => $title,
             'body' => $body,
+            'status' => $status,
         ]);
 
         $id = (int) Database::connection()->lastInsertId();
