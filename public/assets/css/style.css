@@ -133,3 +133,10 @@ button,
     font-size: 0.85em;
     color: #555;
 }
+
+.account-card {
+    margin-top: 24px;
+    padding: 16px;
+    border: 1px solid #eee;
+    border-radius: 6px;
+}

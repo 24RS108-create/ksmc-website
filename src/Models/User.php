@@ -92,6 +92,22 @@ final class User
         return $user;
     }
 
+    /**
+     * ロールを変更する（FR-09で定義された4種類のみ許可）。
+     * 管理者権限の委譲（FR-10）、休止会員へのロック処理（FR-11）で使用する。
+     */
+    public function updateRole(string $role): void
+    {
+        if (!in_array($role, ['member', 'pr', 'admin', 'inactive'], true)) {
+            throw new \InvalidArgumentException('不正なロールです。');
+        }
+
+        $stmt = Database::connection()->prepare('UPDATE users SET role = :role WHERE id = :id');
+        $stmt->execute(['role' => $role, 'id' => $this->id]);
+
+        $this->role = $role;
+    }
+
     public function verifyPassword(string $plainPassword): bool
     {
         return password_verify($plainPassword, $this->passwordHash);

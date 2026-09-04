@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Config\Database;
 use App\Core\Auth;
 use App\Core\Csrf;
 use App\Core\View;
@@ -73,5 +74,90 @@ final class AccountController
             'loginId' => $loginId,
             'displayName' => $displayName,
         ]);
+    }
+
+    public function showManage(): void
+    {
+        Auth::requireRole('admin');
+
+        $searchLoginId = trim((string) ($_GET['login_id'] ?? ''));
+        $found = $searchLoginId !== '' ? User::findByLoginId($searchLoginId) : null;
+
+        View::render('account_manage', [
+            'title' => 'アカウント管理',
+            'notice' => null,
+            'error' => $searchLoginId !== '' && $found === null ? '該当するアカウントが見つかりませんでした。' : null,
+            'searchLoginId' => $searchLoginId,
+            'found' => $found,
+        ]);
+    }
+
+    public function showTransferConfirm(): void
+    {
+        $admin = Auth::requireRole('admin');
+        $target = $this->findTransferTargetOrRedirect($admin);
+
+        View::render('account_transfer_confirm', [
+            'title' => '管理者権限の委譲確認',
+            'error' => null,
+            'target' => $target,
+        ]);
+    }
+
+    public function transferAdmin(): void
+    {
+        $admin = Auth::requireRole('admin');
+        $target = $this->findTransferTargetOrRedirect($admin, (string) ($_POST['login_id'] ?? ''));
+
+        if (!Csrf::verify($_POST['csrf_token'] ?? null)) {
+            View::render('account_transfer_confirm', [
+                'title' => '管理者権限の委譲確認',
+                'error' => '不正なリクエストです。もう一度お試しください。',
+                'target' => $target,
+            ]);
+            return;
+        }
+
+        $connection = Database::connection();
+        $connection->beginTransaction();
+        try {
+            $target->updateRole('admin');
+            $admin->updateRole('member');
+            $connection->commit();
+        } catch (\Throwable) {
+            $connection->rollBack();
+
+            View::render('account_transfer_confirm', [
+                'title' => '管理者権限の委譲確認',
+                'error' => '権限の委譲に失敗しました。もう一度お試しください。',
+                'target' => $target,
+            ]);
+            return;
+        }
+
+        View::render('account_manage', [
+            'title' => 'アカウント管理',
+            'notice' => "管理者権限を「{$target->loginId}」に委譲しました。あなたのロールは「会員」になりました。",
+            'error' => null,
+            'searchLoginId' => '',
+            'found' => null,
+        ]);
+    }
+
+    /**
+     * 委譲先ログインIDを検証し、対象ユーザーを返す。不正な場合は一覧へリダイレクトして終了する。
+     */
+    private function findTransferTargetOrRedirect(User $admin, ?string $loginId = null): User
+    {
+        $loginId = $loginId ?? (string) ($_GET['login_id'] ?? '');
+        $loginId = trim($loginId);
+        $target = $loginId !== '' ? User::findByLoginId($loginId) : null;
+
+        if ($target === null || $target->id === $admin->id || $target->role === 'admin') {
+            header('Location: /account_manage.php');
+            exit;
+        }
+
+        return $target;
     }
 }
