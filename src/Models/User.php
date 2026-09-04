@@ -148,4 +148,16 @@ final class User
         $this->displayName = $displayName;
         $this->profileNote = $profileNote;
     }
+
+    /**
+     * 会員アカウントを削除する（FR-11、本人からの削除要望があった場合）。
+     * 投稿・画像・タグ紐付けは DB の外部キー制約により連鎖して削除される。
+     * アップロード済みの画像ファイルはこのメソッドでは削除しないため、呼び出し側で
+     * ImageUploader::deletePostDirectory() 等を先に実行すること。
+     */
+    public static function delete(int $id): void
+    {
+        $stmt = Database::connection()->prepare('DELETE FROM users WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+    }
 }

@@ -47,5 +47,11 @@ $roleLabels = [
     <?php if ($found->role !== 'admin'): ?>
     <p><a class="button" href="/account_transfer.php?login_id=<?= urlencode($found->loginId) ?>">管理者権限を委譲する</a></p>
     <?php endif; ?>
+
+    <?php if ($found->role !== 'inactive'): ?>
+    <p><a class="button button-secondary" href="/account_lock.php?login_id=<?= urlencode($found->loginId) ?>">休止会員にする（ロック）</a></p>
+    <?php endif; ?>
+
+    <p><a class="button button-danger" href="/account_delete.php?login_id=<?= urlencode($found->loginId) ?>">アカウントを削除する</a></p>
 </div>
 <?php endif; ?>

@@ -7,12 +7,13 @@ namespace App\Controllers;
 use App\Core\Auth;
 use App\Core\Csrf;
 use App\Core\View;
+use App\Models\User;
 
 final class ProfileController
 {
     public function show(): void
     {
-        $user = Auth::requireLogin();
+        $user = $this->requireActiveUser();
 
         View::render('profile_edit', [
             'title' => 'プロフィール編集',
@@ -25,7 +26,7 @@ final class ProfileController
 
     public function update(): void
     {
-        $user = Auth::requireLogin();
+        $user = $this->requireActiveUser();
 
         $displayName = trim((string) ($_POST['display_name'] ?? ''));
         $profileNoteRaw = trim((string) ($_POST['profile_note'] ?? ''));
@@ -62,5 +63,20 @@ final class ProfileController
             'displayName' => $displayName,
             'profileNote' => $profileNote,
         ]);
+    }
+
+    /**
+     * 休止会員はプロフィール編集不可（FR-11）。
+     */
+    private function requireActiveUser(): User
+    {
+        $user = Auth::requireLogin();
+
+        if ($user->role === 'inactive') {
+            header('Location: /my_posts.php');
+            exit;
+        }
+
+        return $user;
     }
 }

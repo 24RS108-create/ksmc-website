@@ -140,3 +140,7 @@ button,
     border: 1px solid #eee;
     border-radius: 6px;
 }
+
+.button-danger {
+    background-color: #b00020;
+}

@@ -13,12 +13,13 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_users_login_id (login_id),
-    CONSTRAINT fk_users_invited_by FOREIGN KEY (invited_by) REFERENCES users (id)
+    CONSTRAINT fk_users_invited_by FOREIGN KEY (invited_by) REFERENCES users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- docs/db_schema_draft_1.md の posts/images/tags/post_tags テーブル定義に基づく（FR-04 実装分）
 -- post_type は個人作品のみ（'official_blog' は FR-13/FR-14 で別途対応）
 
+-- 会員アカウント削除時（FR-11）、投稿・画像・タグ紐付けも連鎖して削除する方針のため CASCADE とする。
 CREATE TABLE IF NOT EXISTS posts (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id INT UNSIGNED NOT NULL,
@@ -31,7 +32,7 @@ CREATE TABLE IF NOT EXISTS posts (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_posts_user_id (user_id),
-    CONSTRAINT fk_posts_user_id FOREIGN KEY (user_id) REFERENCES users (id)
+    CONSTRAINT fk_posts_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- logo_pos_x/y, logo_scale, logo_opacity はロゴ合成機能（FR-19、操作項目は要決定）が

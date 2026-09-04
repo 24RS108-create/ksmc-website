@@ -7,7 +7,9 @@ namespace App\Controllers;
 use App\Config\Database;
 use App\Core\Auth;
 use App\Core\Csrf;
+use App\Core\ImageUploader;
 use App\Core\View;
+use App\Models\Post;
 use App\Models\User;
 
 final class AccountController
@@ -144,16 +146,125 @@ final class AccountController
         ]);
     }
 
+    public function showLockConfirm(): void
+    {
+        $admin = Auth::requireRole('admin');
+        $target = $this->findLockTargetOrRedirect($admin);
+
+        View::render('account_lock_confirm', [
+            'title' => 'アカウントのロック確認',
+            'error' => null,
+            'target' => $target,
+        ]);
+    }
+
+    public function lock(): void
+    {
+        $admin = Auth::requireRole('admin');
+        $target = $this->findLockTargetOrRedirect($admin, (string) ($_POST['login_id'] ?? ''));
+
+        if (!Csrf::verify($_POST['csrf_token'] ?? null)) {
+            View::render('account_lock_confirm', [
+                'title' => 'アカウントのロック確認',
+                'error' => '不正なリクエストです。もう一度お試しください。',
+                'target' => $target,
+            ]);
+            return;
+        }
+
+        $target->updateRole('inactive');
+
+        View::render('account_manage', [
+            'title' => 'アカウント管理',
+            'notice' => "「{$target->loginId}」を休止会員にしました。",
+            'error' => null,
+            'searchLoginId' => '',
+            'found' => null,
+        ]);
+    }
+
+    public function showDeleteConfirm(): void
+    {
+        $admin = Auth::requireRole('admin');
+        $target = $this->findManagedTargetOrRedirect($admin);
+
+        View::render('account_delete_confirm', [
+            'title' => 'アカウント削除の確認',
+            'error' => null,
+            'target' => $target,
+        ]);
+    }
+
+    public function delete(): void
+    {
+        $admin = Auth::requireRole('admin');
+        $target = $this->findManagedTargetOrRedirect($admin, (string) ($_POST['login_id'] ?? ''));
+
+        if (!Csrf::verify($_POST['csrf_token'] ?? null)) {
+            View::render('account_delete_confirm', [
+                'title' => 'アカウント削除の確認',
+                'error' => '不正なリクエストです。もう一度お試しください。',
+                'target' => $target,
+            ]);
+            return;
+        }
+
+        // 投稿ごとアップロード済み画像も削除する（FR-11、DB側は外部キーのCASCADEで連鎖削除）。
+        foreach (Post::findByUserId($target->id) as $post) {
+            ImageUploader::deletePostDirectory($post->id);
+        }
+        User::delete($target->id);
+
+        View::render('account_manage', [
+            'title' => 'アカウント管理',
+            'notice' => "「{$target->loginId}」のアカウントを削除しました。",
+            'error' => null,
+            'searchLoginId' => '',
+            'found' => null,
+        ]);
+    }
+
     /**
-     * 委譲先ログインIDを検証し、対象ユーザーを返す。不正な場合は一覧へリダイレクトして終了する。
+     * 管理対象のログインIDを検証し、対象ユーザーを返す（自分自身は対象外）。
+     * 不正な場合は一覧へリダイレクトして終了する。
      */
-    private function findTransferTargetOrRedirect(User $admin, ?string $loginId = null): User
+    private function findManagedTargetOrRedirect(User $admin, ?string $loginId = null): User
     {
         $loginId = $loginId ?? (string) ($_GET['login_id'] ?? '');
         $loginId = trim($loginId);
         $target = $loginId !== '' ? User::findByLoginId($loginId) : null;
 
-        if ($target === null || $target->id === $admin->id || $target->role === 'admin') {
+        if ($target === null || $target->id === $admin->id) {
+            header('Location: /account_manage.php');
+            exit;
+        }
+
+        return $target;
+    }
+
+    /**
+     * 委譲先ログインIDを検証し、対象ユーザーを返す。不正な場合は一覧へリダイレクトして終了する。
+     */
+    private function findTransferTargetOrRedirect(User $admin, ?string $loginId = null): User
+    {
+        $target = $this->findManagedTargetOrRedirect($admin, $loginId);
+
+        if ($target->role === 'admin') {
+            header('Location: /account_manage.php');
+            exit;
+        }
+
+        return $target;
+    }
+
+    /**
+     * ロック対象のログインIDを検証し、対象ユーザーを返す。不正な場合は一覧へリダイレクトして終了する。
+     */
+    private function findLockTargetOrRedirect(User $admin, ?string $loginId = null): User
+    {
+        $target = $this->findManagedTargetOrRedirect($admin, $loginId);
+
+        if ($target->role === 'inactive') {
             header('Location: /account_manage.php');
             exit;
         }
