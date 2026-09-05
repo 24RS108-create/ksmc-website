@@ -12,6 +12,8 @@ use App\Core\View;
  * @var string $formNewTags
  * @var array<int, int> $selectedTagIds
  * @var array<int, array{id: int, name: string}> $tags
+ * @var bool $canPostOfficialBlog
+ * @var string $formPostType
  */
 
 $maxTotalMb = (int) (Uploads::MAX_TOTAL_BYTES / 1024 / 1024);
@@ -32,6 +34,20 @@ $maxTotalMb = (int) (Uploads::MAX_TOTAL_BYTES / 1024 / 1024);
 
 <form method="post" action="/post_create.php" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="<?= View::e(Csrf::token()) ?>">
+
+    <?php if ($canPostOfficialBlog): ?>
+    <div class="form-row">
+        <label>投稿区分</label>
+        <label class="checkbox-label">
+            <input type="radio" name="post_type" value="individual" <?= $formPostType !== 'official_blog' ? 'checked' : '' ?>>
+            個人の作品記事
+        </label>
+        <label class="checkbox-label">
+            <input type="radio" name="post_type" value="official_blog" <?= $formPostType === 'official_blog' ? 'checked' : '' ?>>
+            サークル公式ブログ
+        </label>
+    </div>
+    <?php endif; ?>
 
     <div class="form-row">
         <label for="title">タイトル</label>

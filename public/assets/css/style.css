@@ -127,6 +127,11 @@ button,
     color: #1a7a30;
 }
 
+.status-blog {
+    background-color: #e3d9f7;
+    color: #4b2e83;
+}
+
 .image-list {
     margin: 4px 0 0;
     padding-left: 20px;
@@ -143,4 +148,8 @@ button,
 
 .button-danger {
     background-color: #b00020;
+}
+
+.inline-form {
+    margin: 8px 0;
 }

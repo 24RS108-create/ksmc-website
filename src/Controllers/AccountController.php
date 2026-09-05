@@ -225,6 +225,41 @@ final class AccountController
     }
 
     /**
+     * 広報担当ロールの付与・解除（FR-14）。委譲・削除と異なり容易に元へ戻せる操作のため、
+     * 確認画面を挟まず1クリックで実行する。
+     */
+    public function updatePr(): void
+    {
+        $admin = Auth::requireRole('admin');
+        $target = $this->findManagedTargetOrRedirect($admin, (string) ($_POST['login_id'] ?? ''));
+        $action = (string) ($_POST['pr_action'] ?? '');
+
+        if (!Csrf::verify($_POST['csrf_token'] ?? null)) {
+            header('Location: /account_manage.php');
+            exit;
+        }
+
+        if ($action === 'grant' && $target->role === 'member') {
+            $target->updateRole('pr');
+            $notice = "「{$target->loginId}」を広報担当にしました。";
+        } elseif ($action === 'revoke' && $target->role === 'pr') {
+            $target->updateRole('member');
+            $notice = "「{$target->loginId}」の広報担当を解除しました。";
+        } else {
+            header('Location: /account_manage.php');
+            exit;
+        }
+
+        View::render('account_manage', [
+            'title' => 'アカウント管理',
+            'notice' => $notice,
+            'error' => null,
+            'searchLoginId' => '',
+            'found' => null,
+        ]);
+    }
+
+    /**
      * 管理対象のログインIDを検証し、対象ユーザーを返す（自分自身は対象外）。
      * 不正な場合は一覧へリダイレクトして終了する。
      */

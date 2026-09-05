@@ -28,11 +28,16 @@ final class Post
     }
 
     /**
-     * 個人の作品投稿を作成する（FR-04）。$status は 'draft' か 'published' のみを受け付ける。
+     * 投稿を作成する（FR-04, FR-13, FR-14）。$postType は 'individual' か 'official_blog'、
+     * $status は 'draft' か 'published' のみを受け付ける。公式ブログ投稿権限のチェックは
+     * 呼び出し側（コントローラー）の責務とする。
      * 公開時は承認フローを介さず即時公開する（FR-05, FR-07）。
      */
-    public static function createIndividual(int $userId, string $title, string $body, string $status): self
+    public static function create(int $userId, string $postType, string $title, string $body, string $status): self
     {
+        if (!in_array($postType, ['individual', 'official_blog'], true)) {
+            throw new \InvalidArgumentException('不正な投稿種別です。');
+        }
         if (!in_array($status, ['draft', 'published'], true)) {
             throw new \InvalidArgumentException('不正な投稿状態です。');
         }
@@ -41,10 +46,11 @@ final class Post
 
         $stmt = Database::connection()->prepare(
             "INSERT INTO posts (user_id, post_type, title, body, status, published_at)
-             VALUES (:user_id, 'individual', :title, :body, :status, {$publishedAtExpr})"
+             VALUES (:user_id, :post_type, :title, :body, :status, {$publishedAtExpr})"
         );
         $stmt->execute([
             'user_id' => $userId,
+            'post_type' => $postType,
             'title' => $title,
             'body' => $body,
             'status' => $status,

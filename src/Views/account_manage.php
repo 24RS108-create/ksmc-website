@@ -1,5 +1,6 @@
 <?php
 
+use App\Core\Csrf;
 use App\Core\View;
 use App\Models\User;
 
@@ -46,6 +47,22 @@ $roleLabels = [
 
     <?php if ($found->role !== 'admin'): ?>
     <p><a class="button" href="/account_transfer.php?login_id=<?= urlencode($found->loginId) ?>">管理者権限を委譲する</a></p>
+    <?php endif; ?>
+
+    <?php if ($found->role === 'member'): ?>
+    <form method="post" action="/account_pr.php" class="inline-form">
+        <input type="hidden" name="csrf_token" value="<?= View::e(Csrf::token()) ?>">
+        <input type="hidden" name="login_id" value="<?= View::e($found->loginId) ?>">
+        <input type="hidden" name="pr_action" value="grant">
+        <button type="submit" class="button-secondary">広報担当にする</button>
+    </form>
+    <?php elseif ($found->role === 'pr'): ?>
+    <form method="post" action="/account_pr.php" class="inline-form">
+        <input type="hidden" name="csrf_token" value="<?= View::e(Csrf::token()) ?>">
+        <input type="hidden" name="login_id" value="<?= View::e($found->loginId) ?>">
+        <input type="hidden" name="pr_action" value="revoke">
+        <button type="submit" class="button-secondary">広報担当を解除する</button>
+    </form>
     <?php endif; ?>
 
     <?php if ($found->role !== 'inactive'): ?>

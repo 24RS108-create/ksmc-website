@@ -18,7 +18,7 @@ final class PostController
 {
     public function showCreate(): void
     {
-        $this->requirePostableUser();
+        $user = $this->requirePostableUser();
 
         View::render('post_create', [
             'title' => '作品投稿',
@@ -29,6 +29,8 @@ final class PostController
             'formNewTags' => '',
             'selectedTagIds' => [],
             'tags' => Tag::findAll(),
+            'canPostOfficialBlog' => $this->canPostOfficialBlog($user),
+            'formPostType' => 'individual',
         ]);
     }
 
@@ -39,6 +41,7 @@ final class PostController
         $action = (string) ($_POST['action'] ?? '');
         $status = $action === 'publish' ? 'published' : 'draft';
 
+        $postType = (string) ($_POST['post_type'] ?? 'individual');
         $postTitle = trim((string) ($_POST['title'] ?? ''));
         $body = trim((string) ($_POST['body'] ?? ''));
         $newTagsRaw = (string) ($_POST['new_tags'] ?? '');
@@ -47,6 +50,13 @@ final class PostController
 
         if (!in_array($action, ['draft', 'publish'], true) || !Csrf::verify($_POST['csrf_token'] ?? null)) {
             $errors[] = '不正なリクエストです。もう一度お試しください。';
+        }
+        if (!in_array($postType, ['individual', 'official_blog'], true)) {
+            $postType = 'individual';
+        }
+        if ($postType === 'official_blog' && !$this->canPostOfficialBlog($user)) {
+            $errors[] = '公式ブログへの投稿権限がありません。';
+            $postType = 'individual';
         }
         if ($postTitle === '') {
             $errors[] = 'タイトルを入力してください。';
@@ -75,7 +85,7 @@ final class PostController
         $newTagNames = $this->parseTagNames($newTagsRaw);
 
         if (!empty($errors)) {
-            $this->renderForm($errors, null, $postTitle, $body, $newTagsRaw, $selectedTagIds, $existingTags);
+            $this->renderForm($errors, null, $postTitle, $body, $newTagsRaw, $selectedTagIds, $existingTags, $user, $postType);
             return;
         }
 
@@ -83,7 +93,7 @@ final class PostController
         $connection->beginTransaction();
 
         try {
-            $post = Post::createIndividual($user->id, $postTitle, $body, $status);
+            $post = Post::create($user->id, $postType, $postTitle, $body, $status);
 
             $storedImages = ImageUploader::store($uploadResult['files'], $post->id);
             foreach ($storedImages as $index => $image) {
@@ -109,13 +119,15 @@ final class PostController
                 $body,
                 $newTagsRaw,
                 $selectedTagIds,
-                $existingTags
+                $existingTags,
+                $user,
+                $postType
             );
             return;
         }
 
         $notice = $status === 'published' ? '作品を公開しました。' : '下書きとして保存しました。';
-        $this->renderForm([], $notice, '', '', '', [], Tag::findAll());
+        $this->renderForm([], $notice, '', '', '', [], Tag::findAll(), $user, 'individual');
     }
 
     public function showMyPosts(): void
@@ -293,7 +305,7 @@ final class PostController
         $id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
         $post = $id > 0 ? Post::findById($id) : null;
 
-        if ($post === null || $post->postType !== 'individual') {
+        if ($post === null) {
             header('Location: /my_posts.php');
             exit;
         }
@@ -318,7 +330,9 @@ final class PostController
         string $formBody,
         string $formNewTags,
         array $selectedTagIds,
-        array $tags
+        array $tags,
+        User $user,
+        string $formPostType
     ): void {
         View::render('post_create', [
             'title' => '作品投稿',
@@ -329,7 +343,17 @@ final class PostController
             'formNewTags' => $formNewTags,
             'selectedTagIds' => $selectedTagIds,
             'tags' => $tags,
+            'canPostOfficialBlog' => $this->canPostOfficialBlog($user),
+            'formPostType' => $formPostType,
         ]);
+    }
+
+    /**
+     * 公式ブログへの投稿権限は広報担当と管理者に限定する（FR-14）。
+     */
+    private function canPostOfficialBlog(User $user): bool
+    {
+        return in_array($user->role, ['pr', 'admin'], true);
     }
 
     /**

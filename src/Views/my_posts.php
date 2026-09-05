@@ -20,6 +20,9 @@ use App\Models\Post;
         <span class="status-badge status-<?= View::e($post->status) ?>">
             <?= $post->status === 'published' ? '公開中' : '下書き' ?>
         </span>
+        <?php if ($post->postType === 'official_blog'): ?>
+        <span class="status-badge status-blog">公式ブログ</span>
+        <?php endif; ?>
         <span class="post-list-title"><?= View::e($post->title) ?></span>
         <span class="post-list-actions">
             <a href="/post_edit.php?id=<?= $post->id ?>">編集</a>
