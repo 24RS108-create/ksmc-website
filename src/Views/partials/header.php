@@ -16,5 +16,6 @@ use App\Core\View;
 <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body>
-<main class="page<?= !empty($wide) ? ' page-wide' : '' ?>">
+<div class="app-shell">
 <?php require __DIR__ . '/nav.php'; ?>
+<main class="content<?= !empty($wide) ? ' content-wide' : '' ?>">
