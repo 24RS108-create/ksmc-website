@@ -17,3 +17,4 @@ use App\Core\View;
 </head>
 <body>
 <main class="page<?= !empty($wide) ? ' page-wide' : '' ?>">
+<?php require __DIR__ . '/nav.php'; ?>

@@ -14,7 +14,7 @@ final class AuthController
     public function showLogin(): void
     {
         if (Auth::check()) {
-            header('Location: /profile_edit.php');
+            header('Location: /');
             exit;
         }
 
@@ -46,7 +46,7 @@ final class AuthController
                 if ($user->mustChangePassword) {
                     header('Location: /password_edit.php');
                 } else {
-                    header('Location: /profile_edit.php');
+                    header('Location: /');
                 }
                 exit;
             }

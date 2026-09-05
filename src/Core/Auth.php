@@ -57,7 +57,7 @@ final class Auth
     {
         $user = self::requireLogin($redirectTo);
         if ($user->role !== $role) {
-            header('Location: /profile_edit.php');
+            header('Location: /');
             exit;
         }
 

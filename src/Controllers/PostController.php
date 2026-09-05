@@ -283,9 +283,9 @@ final class PostController
     {
         $user = Auth::requireLogin();
 
-        // 休止会員は新規投稿不可（FR-11）。
+        // 休止会員は新規投稿不可（FR-11）。プロフィール編集も不可のため、自分の投稿一覧へ誘導する。
         if ($user->role === 'inactive') {
-            header('Location: /profile_edit.php');
+            header('Location: /my_posts.php');
             exit;
         }
 

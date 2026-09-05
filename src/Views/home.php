@@ -1,24 +1,11 @@
 <?php
 
-use App\Core\Auth;
-
 /**
  * @var array<int, array{post: \App\Models\Post, authorName: string, thumbnail: ?string}> $individualPosts
  * @var array<int, array{post: \App\Models\Post, authorName: string, thumbnail: ?string}> $blogPosts
  */
 ?>
 <h1>九産模型愛好会</h1>
-
-<nav class="top-nav">
-    <?php if (Auth::check()): ?>
-    <a href="/my_posts.php">自分の投稿</a>
-    <a href="/post_create.php">投稿する</a>
-    <a href="/profile_edit.php">プロフィール</a>
-    <a href="/logout.php">ログアウト</a>
-    <?php else: ?>
-    <a href="/login.php">ログイン</a>
-    <?php endif; ?>
-</nav>
 
 <section>
     <h2>作品ギャラリー</h2>
