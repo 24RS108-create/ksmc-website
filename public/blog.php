@@ -6,4 +6,4 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 
 use App\Controllers\GalleryController;
 
-(new GalleryController())->showHome();
+(new GalleryController())->showBlog();

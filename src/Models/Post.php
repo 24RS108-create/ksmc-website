@@ -134,6 +134,44 @@ final class Post
         }
     }
 
+    /**
+     * トップページ・一覧ページ表示用（FR-15）。公開済みの投稿のみを種別ごとに取得する。
+     *
+     * @return array<int, self>
+     */
+    public static function findPublishedByType(string $postType, ?int $limit = null): array
+    {
+        $sql = "SELECT * FROM posts WHERE post_type = :post_type AND status = 'published'
+                ORDER BY published_at DESC";
+        if ($limit !== null) {
+            $sql .= ' LIMIT ' . max(0, $limit);
+        }
+
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute(['post_type' => $postType]);
+
+        $posts = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $posts[] = new self($row);
+        }
+
+        return $posts;
+    }
+
+    /**
+     * 公開済みの投稿を1件取得する（未公開の投稿は訪問者に見せない、FR-15）。
+     */
+    public static function findPublishedById(int $id): ?self
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT * FROM posts WHERE id = :id AND status = 'published' LIMIT 1"
+        );
+        $stmt->execute(['id' => $id]);
+        $row = $stmt->fetch();
+
+        return $row === false ? null : new self($row);
+    }
+
     public static function delete(int $id): void
     {
         $stmt = Database::connection()->prepare('DELETE FROM posts WHERE id = :id');

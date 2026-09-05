@@ -2,7 +2,10 @@
 
 use App\Core\View;
 
-/** @var string|null $title */
+/**
+ * @var string|null $title
+ * @var bool|null $wide
+ */
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -13,4 +16,4 @@ use App\Core\View;
 <link rel="stylesheet" href="/assets/css/style.css">
 </head>
 <body>
-<main class="page">
+<main class="page<?= !empty($wide) ? ' page-wide' : '' ?>">

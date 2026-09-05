@@ -69,4 +69,27 @@ final class Tag
 
         return array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
     }
+
+    /**
+     * 投稿詳細表示用（FR-15）。
+     *
+     * @return array<int, array{id: int, name: string}>
+     */
+    public static function findByPostId(int $postId): array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT t.id, t.name FROM tags t
+             JOIN post_tags pt ON pt.tag_id = t.id
+             WHERE pt.post_id = :post_id
+             ORDER BY t.name ASC'
+        );
+        $stmt->execute(['post_id' => $postId]);
+
+        $tags = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $tags[] = ['id' => (int) $row['id'], 'name' => $row['name']];
+        }
+
+        return $tags;
+    }
 }
