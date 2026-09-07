@@ -51,6 +51,23 @@ final class User
         return $row === false ? null : new self($row);
     }
 
+    /**
+     * アカウント管理画面での一覧表示用。ログインID順に全会員を返す。
+     *
+     * @return array<int, self>
+     */
+    public static function findAll(): array
+    {
+        $stmt = Database::connection()->query('SELECT * FROM users ORDER BY login_id ASC');
+
+        $users = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $users[] = new self($row);
+        }
+
+        return $users;
+    }
+
     public static function loginIdExists(string $loginId): bool
     {
         $stmt = Database::connection()->prepare(

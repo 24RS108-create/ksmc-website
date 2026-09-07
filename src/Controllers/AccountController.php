@@ -80,18 +80,10 @@ final class AccountController
 
     public function showManage(): void
     {
-        Auth::requireRole('admin');
+        $admin = Auth::requireRole('admin');
 
         $searchLoginId = trim((string) ($_GET['login_id'] ?? ''));
-        $found = $searchLoginId !== '' ? User::findByLoginId($searchLoginId) : null;
-
-        View::render('account_manage', [
-            'title' => 'アカウント管理',
-            'notice' => null,
-            'error' => $searchLoginId !== '' && $found === null ? '該当するアカウントが見つかりませんでした。' : null,
-            'searchLoginId' => $searchLoginId,
-            'found' => $found,
-        ]);
+        $this->renderManage($admin, null, null, $searchLoginId);
     }
 
     public function showTransferConfirm(): void
@@ -137,13 +129,7 @@ final class AccountController
             return;
         }
 
-        View::render('account_manage', [
-            'title' => 'アカウント管理',
-            'notice' => "管理者権限を「{$target->loginId}」に委譲しました。あなたのロールは「会員」になりました。",
-            'error' => null,
-            'searchLoginId' => '',
-            'found' => null,
-        ]);
+        $this->renderManage($admin, "管理者権限を「{$target->loginId}」に委譲しました。あなたのロールは「会員」になりました。");
     }
 
     public function showLockConfirm(): void
@@ -174,13 +160,7 @@ final class AccountController
 
         $target->updateRole('inactive');
 
-        View::render('account_manage', [
-            'title' => 'アカウント管理',
-            'notice' => "「{$target->loginId}」を休止会員にしました。",
-            'error' => null,
-            'searchLoginId' => '',
-            'found' => null,
-        ]);
+        $this->renderManage($admin, "「{$target->loginId}」を休止会員にしました。");
     }
 
     public function showDeleteConfirm(): void
@@ -215,13 +195,7 @@ final class AccountController
         }
         User::delete($target->id);
 
-        View::render('account_manage', [
-            'title' => 'アカウント管理',
-            'notice' => "「{$target->loginId}」のアカウントを削除しました。",
-            'error' => null,
-            'searchLoginId' => '',
-            'found' => null,
-        ]);
+        $this->renderManage($admin, "「{$target->loginId}」のアカウントを削除しました。");
     }
 
     /**
@@ -250,12 +224,32 @@ final class AccountController
             exit;
         }
 
+        $this->renderManage($admin, $notice);
+    }
+
+    /**
+     * アカウント管理画面を描画する。ログインIDが指定されていれば絞り込み結果を、
+     * 指定がなければ全会員の一覧を表示する。
+     */
+    private function renderManage(User $admin, ?string $notice, ?string $error = null, string $searchLoginId = ''): void
+    {
+        if ($searchLoginId !== '') {
+            $found = User::findByLoginId($searchLoginId);
+            $accounts = $found !== null ? [$found] : [];
+            if ($found === null && $error === null) {
+                $error = '該当するアカウントが見つかりませんでした。';
+            }
+        } else {
+            $accounts = User::findAll();
+        }
+
         View::render('account_manage', [
             'title' => 'アカウント管理',
             'notice' => $notice,
-            'error' => null,
-            'searchLoginId' => '',
-            'found' => null,
+            'error' => $error,
+            'searchLoginId' => $searchLoginId,
+            'accounts' => $accounts,
+            'currentAdminId' => $admin->id,
         ]);
     }
 
