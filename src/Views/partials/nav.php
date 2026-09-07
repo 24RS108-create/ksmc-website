@@ -24,6 +24,7 @@ $navUser = Auth::user();
         <?php if ($navUser->role === 'admin'): ?>
         <a href="/account_create.php">アカウント発行</a>
         <a href="/account_manage.php">アカウント管理</a>
+        <a href="/tag_manage.php">タグ管理</a>
         <?php endif; ?>
         <a href="/logout.php">ログアウト</a>
         <?php endif; ?>
