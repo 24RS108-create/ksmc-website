@@ -17,6 +17,7 @@ use App\Models\User;
 final class GalleryController
 {
     private const HOME_LIMIT = 5;
+    private const TAG_INITIAL_DISPLAY_LIMIT = 25;
 
     public function showHome(): void
     {
@@ -55,10 +56,20 @@ final class GalleryController
         $tagIds = array_map('intval', (array) ($_GET['tag_ids'] ?? []));
         $tagIds = array_values(array_unique(array_filter($tagIds, static fn (int $id): bool => $id > 0)));
 
+        $allTags = Tag::findAllWithPublishedPostCount();
+        $topTags = array_slice($allTags, 0, self::TAG_INITIAL_DISPLAY_LIMIT);
+        $moreTags = array_slice($allTags, self::TAG_INITIAL_DISPLAY_LIMIT);
+
+        // 「もっと見る」の外側にあるタグが選択済みの場合は、選択内容が見える状態で開いておく。
+        $moreTagIds = array_column($moreTags, 'id');
+        $expandMoreTags = array_intersect($tagIds, $moreTagIds) !== [];
+
         View::render('tags', [
             'title' => 'タグから探す',
             'wide' => true,
-            'tags' => Tag::findAllWithPublishedPostCount(),
+            'topTags' => $topTags,
+            'moreTags' => $moreTags,
+            'expandMoreTags' => $expandMoreTags,
             'selectedTagIds' => $tagIds,
             'posts' => empty($tagIds) ? [] : $this->decorate(Post::findPublishedByTagIds($tagIds)),
         ]);

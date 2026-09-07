@@ -131,6 +131,7 @@ final class Tag
 
     /**
      * タグ別一覧ページ用（FR-18）。公開済み投稿の件数のみをカウントする。
+     * 件数の多い順（同数の場合は名前順）に並べ、一覧側で上位25件の初期表示に用いる。
      *
      * @return array<int, array{id: int, name: string, post_count: int}>
      */
@@ -143,7 +144,7 @@ final class Tag
              LEFT JOIN post_tags pt ON pt.tag_id = t.id
              LEFT JOIN posts p ON p.id = pt.post_id
              GROUP BY t.id, t.name
-             ORDER BY t.name ASC"
+             ORDER BY post_count DESC, t.name ASC"
         );
 
         $tags = [];

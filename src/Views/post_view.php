@@ -36,7 +36,7 @@ $backLabel = $post->postType === 'official_blog' ? '公式ブログ一覧へ戻�
 <?php if (!empty($tags)): ?>
 <p class="post-tags">
     <?php foreach ($tags as $tag): ?>
-    <span class="status-badge">#<?= View::e($tag['name']) ?></span>
+    <a class="status-badge" href="/tags.php?tag_ids%5B%5D=<?= (int) $tag['id'] ?>">#<?= View::e($tag['name']) ?></a>
     <?php endforeach; ?>
 </p>
 <?php endif; ?>
