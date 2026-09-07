@@ -159,6 +159,38 @@ final class Post
     }
 
     /**
+     * タグ別一覧・複数タグ絞り込み用（FR-18）。選択された全タグを持つ公開済み投稿のみを返す
+     * （AND条件）。個人作品・公式ブログの区別なく対象とする。
+     *
+     * @param array<int, int> $tagIds
+     * @return array<int, self>
+     */
+    public static function findPublishedByTagIds(array $tagIds): array
+    {
+        if (empty($tagIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($tagIds), '?'));
+        $sql = "SELECT p.* FROM posts p
+                JOIN post_tags pt ON pt.post_id = p.id
+                WHERE p.status = 'published' AND pt.tag_id IN ({$placeholders})
+                GROUP BY p.id
+                HAVING COUNT(DISTINCT pt.tag_id) = ?
+                ORDER BY p.published_at DESC";
+
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute([...$tagIds, count($tagIds)]);
+
+        $posts = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $posts[] = new self($row);
+        }
+
+        return $posts;
+    }
+
+    /**
      * 公開済みの投稿を1件取得する（未公開の投稿は訪問者に見せない、FR-15）。
      */
     public static function findPublishedById(int $id): ?self

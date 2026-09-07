@@ -12,6 +12,7 @@ $navUser = Auth::user();
         <a href="/">トップ</a>
         <a href="/gallery.php">模型ギャラリー</a>
         <a href="/blog.php">公式ブログ</a>
+        <a href="/tags.php">タグから探す</a>
         <?php if ($navUser === null): ?>
         <a href="/login.php">ログイン</a>
         <?php else: ?>

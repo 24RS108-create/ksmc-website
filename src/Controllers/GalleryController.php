@@ -46,6 +46,24 @@ final class GalleryController
         ]);
     }
 
+    /**
+     * タグ別一覧・複数タグ絞り込み（FR-18）。個人作品・公式ブログを1つの一覧にまとめて表示する。
+     * 選択タグは全て一致するもの（AND条件）のみを表示する。
+     */
+    public function showTags(): void
+    {
+        $tagIds = array_map('intval', (array) ($_GET['tag_ids'] ?? []));
+        $tagIds = array_values(array_unique(array_filter($tagIds, static fn (int $id): bool => $id > 0)));
+
+        View::render('tags', [
+            'title' => 'タグから探す',
+            'wide' => true,
+            'tags' => Tag::findAllWithPublishedPostCount(),
+            'selectedTagIds' => $tagIds,
+            'posts' => empty($tagIds) ? [] : $this->decorate(Post::findPublishedByTagIds($tagIds)),
+        ]);
+    }
+
     public function showPost(): void
     {
         $id = (int) ($_GET['id'] ?? 0);
