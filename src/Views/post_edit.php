@@ -15,6 +15,7 @@ use App\Models\Post;
  * @var array<int, int> $selectedTagIds
  * @var array<int, array{id: int, name: string}> $tags
  * @var array<int, array{id: int, display_path: string, sort_order: int, file_size_kb: int}> $existingImages
+ * @var bool $canDeleteImages
  */
 
 $maxTotalMb = (int) (Uploads::MAX_TOTAL_BYTES / 1024 / 1024);
@@ -53,12 +54,28 @@ $maxTotalMb = (int) (Uploads::MAX_TOTAL_BYTES / 1024 / 1024);
     <?php if (!empty($existingImages)): ?>
     <div class="form-row">
         <label>登録済みの画像</label>
-        <ul class="image-list">
+        <div class="post-image-list">
             <?php foreach ($existingImages as $image): ?>
-            <li><?= View::e($image['display_path']) ?></li>
+            <?php if ($canDeleteImages): ?>
+            <label class="existing-image-item">
+                <img class="post-image" src="<?= View::e($image['display_path']) ?>" alt="">
+                <span class="checkbox-label">
+                    <input type="checkbox" name="delete_image_ids[]" value="<?= (int) $image['id'] ?>">
+                    この画像を削除する
+                </span>
+            </label>
+            <?php else: ?>
+            <span class="existing-image-item">
+                <img class="post-image" src="<?= View::e($image['display_path']) ?>" alt="">
+            </span>
+            <?php endif; ?>
             <?php endforeach; ?>
-        </ul>
-        <p class="hint">既存の画像はこの画面では削除できません。削除したい場合は投稿自体を削除してください。</p>
+        </div>
+        <?php if ($canDeleteImages): ?>
+        <p class="hint">削除する画像にチェックを入れて保存すると、確認画面で削除内容を確認できます。</p>
+        <?php else: ?>
+        <p class="hint">休止会員は既存の画像を削除できません。削除したい場合は投稿自体を削除してください。</p>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 

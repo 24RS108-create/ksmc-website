@@ -10,7 +10,7 @@
     var RANGES = {
         posX: { min: 0, max: 100 },
         posY: { min: 0, max: 100 },
-        scale: { min: 1, max: 50 },
+        scale: { min: 10, max: 50 },
         opacity: { min: 0, max: 100 }
     };
 

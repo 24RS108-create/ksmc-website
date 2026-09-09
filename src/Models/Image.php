@@ -79,4 +79,35 @@ final class Image
 
         return (int) $stmt->fetchColumn();
     }
+
+    /**
+     * 画像削除（投稿編集画面での既存画像削除用）のため、ファイルパスを含めて1件取得する。
+     *
+     * @return array{id: int, post_id: int, original_path: string, display_path: string}|null
+     */
+    public static function findById(int $id): ?array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT id, post_id, original_path, display_path FROM images WHERE id = :id LIMIT 1'
+        );
+        $stmt->execute(['id' => $id]);
+        $row = $stmt->fetch();
+
+        if ($row === false) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $row['id'],
+            'post_id' => (int) $row['post_id'],
+            'original_path' => $row['original_path'] ?? '',
+            'display_path' => $row['display_path'],
+        ];
+    }
+
+    public static function deleteById(int $id): void
+    {
+        $stmt = Database::connection()->prepare('DELETE FROM images WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+    }
 }

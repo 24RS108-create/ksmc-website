@@ -80,9 +80,11 @@ final class ImageUploader
     }
 
     /**
-     * 検証済みファイルを保存先に移動し、ロゴを合成した表示用画像を生成する（FR-19〜FR-21）。
-     * 元画像（original_path）は上書きせず保存し、ロゴ合成後の画像を別ファイル（display_path）として保存する。
-     * 合成は投稿の保存操作時に同期実行する（FR-20）。
+     * 検証済みファイルを投稿確認画面用の一時領域に保存し、ロゴを合成した表示用画像を生成する
+     * （FR-19〜FR-21）。元画像（original_path）は上書きせず保存し、ロゴ合成後の画像を別ファイル
+     * （display_path）として保存する。合成はこの時点（投稿の保存操作時）で同期実行する（FR-20）。
+     * 投稿確認画面で内容が確定するまでは本保存先（uploads/posts/配下）には置かず、
+     * moveTempToPost()で移動するまでこの一時領域に留め置く。
      *
      * @param array<int, array{name: string, tmp_name: string, size: int, extension: string}> $validatedFiles
      * @param array<int, array{pos_x: float, pos_y: float, scale: float, opacity: float}> $logoSettings
@@ -90,13 +92,12 @@ final class ImageUploader
      * @return array<int, array{original_path: string, display_path: string, file_size_kb: int,
      *     logo_pos_x: float, logo_pos_y: float, logo_scale: float, logo_opacity: float}>
      */
-    public static function store(array $validatedFiles, int $postId, array $logoSettings): array
+    public static function storeTemp(array $validatedFiles, string $token, array $logoSettings): array
     {
-        $targetDir = PUBLIC_PATH . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, Uploads::UPLOAD_SUBDIR)
-            . DIRECTORY_SEPARATOR . $postId;
+        $targetDir = self::tmpDir($token);
 
         if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true) && !is_dir($targetDir)) {
-            throw new \RuntimeException('画像保存用ディレクトリの作成に失敗しました。');
+            throw new \RuntimeException('画像の一時保存用ディレクトリの作成に失敗しました。');
         }
 
         $stored = [];
@@ -133,8 +134,8 @@ final class ImageUploader
             }
 
             $stored[] = [
-                'original_path' => '/' . Uploads::UPLOAD_SUBDIR . '/' . $postId . '/' . $originalFilename,
-                'display_path' => '/' . Uploads::UPLOAD_SUBDIR . '/' . $postId . '/' . $displayFilename,
+                'original_path' => '/' . Uploads::TMP_SUBDIR . '/' . $token . '/' . $originalFilename,
+                'display_path' => '/' . Uploads::TMP_SUBDIR . '/' . $token . '/' . $displayFilename,
                 'file_size_kb' => (int) ceil($file['size'] / 1024),
                 'logo_pos_x' => $settings['pos_x'],
                 'logo_pos_y' => $settings['pos_y'],
@@ -144,6 +145,73 @@ final class ImageUploader
         }
 
         return $stored;
+    }
+
+    /**
+     * 投稿確認画面で確定操作が行われた際に、一時領域の画像ファイルを投稿本体の保存先へ移動する。
+     * 合成済みファイルをそのまま移動するだけなので、ロゴの再合成は行わない。
+     *
+     * @param array<int, array{original_path: string, display_path: string, file_size_kb: int,
+     *     logo_pos_x: float, logo_pos_y: float, logo_scale: float, logo_opacity: float}> $pendingImages
+     * @return array<int, array{original_path: string, display_path: string, file_size_kb: int,
+     *     logo_pos_x: float, logo_pos_y: float, logo_scale: float, logo_opacity: float}>
+     */
+    public static function moveTempToPost(array $pendingImages, int $postId): array
+    {
+        $targetDir = PUBLIC_PATH . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, Uploads::UPLOAD_SUBDIR)
+            . DIRECTORY_SEPARATOR . $postId;
+
+        if (!is_dir($targetDir) && !mkdir($targetDir, 0755, true) && !is_dir($targetDir)) {
+            throw new \RuntimeException('画像保存用ディレクトリの作成に失敗しました。');
+        }
+
+        $moved = [];
+        foreach ($pendingImages as $image) {
+            $originalFilename = basename($image['original_path']);
+            $displayFilename = basename($image['display_path']);
+
+            $fromOriginal = PUBLIC_PATH . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, ltrim($image['original_path'], '/'));
+            $fromDisplay = PUBLIC_PATH . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, ltrim($image['display_path'], '/'));
+            $toOriginal = $targetDir . DIRECTORY_SEPARATOR . $originalFilename;
+            $toDisplay = $targetDir . DIRECTORY_SEPARATOR . $displayFilename;
+
+            if (!rename($fromOriginal, $toOriginal) || !rename($fromDisplay, $toDisplay)) {
+                throw new \RuntimeException('画像の保存確定に失敗しました。');
+            }
+
+            $moved[] = array_merge($image, [
+                'original_path' => '/' . Uploads::UPLOAD_SUBDIR . '/' . $postId . '/' . $originalFilename,
+                'display_path' => '/' . Uploads::UPLOAD_SUBDIR . '/' . $postId . '/' . $displayFilename,
+            ]);
+        }
+
+        return $moved;
+    }
+
+    /**
+     * 投稿確認画面を確定・破棄した際に、一時領域のディレクトリごと削除する。
+     */
+    public static function deleteTempDirectory(string $token): void
+    {
+        $targetDir = self::tmpDir($token);
+
+        if (!is_dir($targetDir)) {
+            return;
+        }
+
+        foreach (glob($targetDir . DIRECTORY_SEPARATOR . '*') ?: [] as $file) {
+            if (is_file($file)) {
+                unlink($file);
+            }
+        }
+
+        rmdir($targetDir);
+    }
+
+    private static function tmpDir(string $token): string
+    {
+        return PUBLIC_PATH . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, Uploads::TMP_SUBDIR)
+            . DIRECTORY_SEPARATOR . $token;
     }
 
     /**

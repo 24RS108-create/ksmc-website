@@ -23,6 +23,9 @@ final class Uploads
 
     public const UPLOAD_SUBDIR = 'uploads/posts';
 
+    // 投稿確認画面（保存前プレビュー）用の一時保存先。確認・確定されるまでここに置く。
+    public const TMP_SUBDIR = 'uploads/tmp';
+
     // ロゴ合成機能（FR-19）。九産模型愛好会のエンブレムを固定のロゴ素材として使用する。
     public const LOGO_ASSET_PATH = 'assets/images/ksmc-emblem.png';
 
@@ -33,6 +36,7 @@ final class Uploads
     public const LOGO_DEFAULT_SCALE = 15.0;
     public const LOGO_DEFAULT_OPACITY = 70.0;
 
-    public const LOGO_MIN_SCALE = 1.0;
+    // ロゴが小さくなりすぎて視認できなくなるのを防ぐため、10%を下限とする。
+    public const LOGO_MIN_SCALE = 10.0;
     public const LOGO_MAX_SCALE = 50.0;
 }
