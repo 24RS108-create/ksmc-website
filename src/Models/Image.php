@@ -8,17 +8,39 @@ use App\Config\Database;
 
 final class Image
 {
-    public static function create(int $postId, string $displayPath, int $fileSizeKb, int $sortOrder): void
-    {
+    /**
+     * ロゴ合成済みの画像を1件登録する（FR-19〜FR-21）。$originalPathには合成前の元画像、
+     * $displayPathにはロゴ合成後の表示用画像のパスを保存する（元画像は上書きしない）。
+     */
+    public static function create(
+        int $postId,
+        string $originalPath,
+        string $displayPath,
+        int $fileSizeKb,
+        int $sortOrder,
+        float $logoPosX,
+        float $logoPosY,
+        float $logoScale,
+        float $logoOpacity
+    ): void {
         $stmt = Database::connection()->prepare(
-            'INSERT INTO images (post_id, display_path, file_size_kb, sort_order)
-             VALUES (:post_id, :display_path, :file_size_kb, :sort_order)'
+            'INSERT INTO images
+                (post_id, original_path, display_path, file_size_kb, sort_order,
+                 logo_pos_x, logo_pos_y, logo_scale, logo_opacity)
+             VALUES
+                (:post_id, :original_path, :display_path, :file_size_kb, :sort_order,
+                 :logo_pos_x, :logo_pos_y, :logo_scale, :logo_opacity)'
         );
         $stmt->execute([
             'post_id' => $postId,
+            'original_path' => $originalPath,
             'display_path' => $displayPath,
             'file_size_kb' => $fileSizeKb,
             'sort_order' => $sortOrder,
+            'logo_pos_x' => $logoPosX,
+            'logo_pos_y' => $logoPosY,
+            'logo_scale' => $logoScale,
+            'logo_opacity' => $logoOpacity,
         ]);
     }
 

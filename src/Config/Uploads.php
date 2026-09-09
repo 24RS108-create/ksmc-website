@@ -22,4 +22,17 @@ final class Uploads
     ];
 
     public const UPLOAD_SUBDIR = 'uploads/posts';
+
+    // ロゴ合成機能（FR-19）。九産模型愛好会のエンブレムを固定のロゴ素材として使用する。
+    public const LOGO_ASSET_PATH = 'assets/images/ksmc-emblem.png';
+
+    // 位置（画像内でのロゴ中心のX/Y、画像幅・高さに対する割合%）、サイズ（ロゴ幅の画像幅に対する割合%）、
+    // 透過度（%、0=完全透明、100=不透明）の既定値。JS無効時など未指定の場合に使用する。
+    public const LOGO_DEFAULT_POS_X = 90.0;
+    public const LOGO_DEFAULT_POS_Y = 90.0;
+    public const LOGO_DEFAULT_SCALE = 15.0;
+    public const LOGO_DEFAULT_OPACITY = 70.0;
+
+    public const LOGO_MIN_SCALE = 1.0;
+    public const LOGO_MAX_SCALE = 50.0;
 }

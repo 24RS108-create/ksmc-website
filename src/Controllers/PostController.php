@@ -68,6 +68,15 @@ final class PostController
         $errors = array_merge($errors, $uploadResult['errors']);
         $errors = array_merge($errors, ImageUploader::checkAggregateLimits($uploadResult['files']));
 
+        // ロゴ調整フォーム（FR-19、JSにより画像ごとに動的生成）の値。アップロードと同じ並び順。
+        $logoSettings = ImageUploader::parseLogoSettings(
+            (array) ($_POST['logo_pos_x'] ?? []),
+            (array) ($_POST['logo_pos_y'] ?? []),
+            (array) ($_POST['logo_scale'] ?? []),
+            (array) ($_POST['logo_opacity'] ?? []),
+            count($uploadResult['files'])
+        );
+
         // 公開時のみ本文・画像を必須とする。下書きは未完成のまま保存できる（FR-05）。
         if ($status === 'published') {
             if ($body === '') {
@@ -95,9 +104,19 @@ final class PostController
         try {
             $post = Post::create($user->id, $postType, $postTitle, $body, $status);
 
-            $storedImages = ImageUploader::store($uploadResult['files'], $post->id);
+            $storedImages = ImageUploader::store($uploadResult['files'], $post->id, $logoSettings);
             foreach ($storedImages as $index => $image) {
-                Image::create($post->id, $image['display_path'], $image['file_size_kb'], $index);
+                Image::create(
+                    $post->id,
+                    $image['original_path'],
+                    $image['display_path'],
+                    $image['file_size_kb'],
+                    $index,
+                    $image['logo_pos_x'],
+                    $image['logo_pos_y'],
+                    $image['logo_scale'],
+                    $image['logo_opacity']
+                );
             }
 
             $tagIds = $selectedTagIds;
@@ -111,6 +130,12 @@ final class PostController
             $connection->commit();
         } catch (\Throwable) {
             $connection->rollBack();
+
+            // DBはロールバックされるが、アップロード先ディレクトリはファイルシステム操作のため
+            // 別途削除する（ロゴ合成失敗時等に空ディレクトリが残るのを防ぐ）。
+            if (isset($post)) {
+                ImageUploader::deletePostDirectory($post->id);
+            }
 
             $this->renderForm(
                 ['投稿の保存に失敗しました。もう一度お試しください。'],
@@ -187,6 +212,15 @@ final class PostController
             ImageUploader::checkAggregateLimits($uploadResult['files'], $existingCount, $existingBytes)
         );
 
+        // ロゴ調整フォーム（FR-19、JSにより画像ごとに動的生成）の値。アップロードと同じ並び順。
+        $logoSettings = ImageUploader::parseLogoSettings(
+            (array) ($_POST['logo_pos_x'] ?? []),
+            (array) ($_POST['logo_pos_y'] ?? []),
+            (array) ($_POST['logo_scale'] ?? []),
+            (array) ($_POST['logo_opacity'] ?? []),
+            count($uploadResult['files'])
+        );
+
         // 公開時のみ本文・画像を必須とする（FR-05）。画像は既存分があれば新規追加は不要。
         if ($status === 'published') {
             if ($body === '') {
@@ -214,10 +248,20 @@ final class PostController
         try {
             $post->update($postTitle, $body, $status);
 
-            $storedImages = ImageUploader::store($uploadResult['files'], $post->id);
+            $storedImages = ImageUploader::store($uploadResult['files'], $post->id, $logoSettings);
             $nextOrder = Image::nextSortOrder($post->id);
             foreach ($storedImages as $index => $image) {
-                Image::create($post->id, $image['display_path'], $image['file_size_kb'], $nextOrder + $index);
+                Image::create(
+                    $post->id,
+                    $image['original_path'],
+                    $image['display_path'],
+                    $image['file_size_kb'],
+                    $nextOrder + $index,
+                    $image['logo_pos_x'],
+                    $image['logo_pos_y'],
+                    $image['logo_scale'],
+                    $image['logo_opacity']
+                );
             }
 
             Tag::detachAllFromPost($post->id);

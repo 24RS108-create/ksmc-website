@@ -35,8 +35,11 @@ CREATE TABLE IF NOT EXISTS posts (
     CONSTRAINT fk_posts_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- logo_pos_x/y, logo_scale, logo_opacity はロゴ合成機能（FR-19、操作項目は要決定）が
--- 未実装のため NULL 許容とする。実装時に値の意味・NOT NULL化を再検討する。
+-- ロゴ合成機能（FR-19〜FR-21）実装分。original_pathには合成前の元画像、display_pathには
+-- ロゴ合成後の表示用画像のパスをそれぞれ保存する（元画像は上書きしない、FR-21）。
+-- logo_pos_x/pos_y はロゴ中心位置（画像幅/高さに対する割合%、0-100）、logo_scale はロゴ幅の
+-- 画像幅に対する割合(%)、logo_opacity は不透明度(%)。いずれもFR-19実装以降は必ず値が入るが、
+-- 実装前に作成された既存行との互換性のためNULL許容のままとする。
 CREATE TABLE IF NOT EXISTS images (
     id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     post_id INT UNSIGNED NOT NULL,
