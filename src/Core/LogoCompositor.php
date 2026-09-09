@@ -45,8 +45,9 @@ final class LogoCompositor
         $destX = (int) round($srcWidth * $posXPercent / 100) - intdiv($logoWidth, 2);
         $destY = (int) round($srcHeight * $posYPercent / 100) - intdiv($logoHeight, 2);
 
-        imagealphablending($source, true);
-        imagecopy($source, $resizedLogo, $destX, $destY, 0, 0, $logoWidth, $logoHeight);
+        imagesavealpha($source, true);
+        imagealphablending($source, false);
+        self::blendOver($source, $resizedLogo, $destX, $destY);
 
         self::saveImage($source, $destPath);
 
@@ -134,6 +135,79 @@ final class LogoCompositor
                 $b = $rgba & 0xFF;
                 $color = imagecolorallocatealpha($logo, $r, $g, $b, $newAlpha);
                 imagesetpixel($logo, $x, $y, $color);
+            }
+        }
+    }
+
+    /**
+     * ロゴ（$logo）を元画像（$base）へ、両者のアルファ値を正しく考慮した「over」合成で描画する。
+     * GDのimagecopy()はimagealphablending(true)を指定しても合成先（$base）側のアルファ値を
+     * ブレンド計算に正しく使わず、特に元画像の透明部分にロゴが重なる箇所で
+     *   - 透過度（オパシティ）の設定が反映されない
+     *   - 元画像の透明部分がロゴ合成後に不透明になってしまう
+     * という不具合を起こすため、ピクセル単位で手動合成する。
+     */
+    private static function blendOver(\GdImage $base, \GdImage $logo, int $offsetX, int $offsetY): void
+    {
+        $baseWidth = imagesx($base);
+        $baseHeight = imagesy($base);
+        $logoWidth = imagesx($logo);
+        $logoHeight = imagesy($logo);
+
+        for ($ly = 0; $ly < $logoHeight; $ly++) {
+            $by = $offsetY + $ly;
+            if ($by < 0 || $by >= $baseHeight) {
+                continue;
+            }
+
+            for ($lx = 0; $lx < $logoWidth; $lx++) {
+                $bx = $offsetX + $lx;
+                if ($bx < 0 || $bx >= $baseWidth) {
+                    continue;
+                }
+
+                $srcRgba = imagecolorat($logo, $lx, $ly);
+                $srcAlphaGd = ($srcRgba >> 24) & 0x7F;
+                if ($srcAlphaGd === 127) {
+                    // ロゴ側が完全透明な部分は何もしない（元画像のピクセルをそのまま残す）。
+                    continue;
+                }
+
+                $dstRgba = imagecolorat($base, $bx, $by);
+                $dstAlphaGd = ($dstRgba >> 24) & 0x7F;
+
+                // GDのアルファ（0=不透明・127=透明）を、通常の不透明度（0=透明・1=不透明）に変換する。
+                $srcA = (127 - $srcAlphaGd) / 127;
+                $dstA = (127 - $dstAlphaGd) / 127;
+                $outA = $srcA + $dstA * (1 - $srcA);
+
+                if ($outA <= 0.0) {
+                    $color = imagecolorallocatealpha($base, 0, 0, 0, 127);
+                    imagesetpixel($base, $bx, $by, $color);
+                    continue;
+                }
+
+                $srcR = ($srcRgba >> 16) & 0xFF;
+                $srcG = ($srcRgba >> 8) & 0xFF;
+                $srcB = $srcRgba & 0xFF;
+                $dstR = ($dstRgba >> 16) & 0xFF;
+                $dstG = ($dstRgba >> 8) & 0xFF;
+                $dstB = $dstRgba & 0xFF;
+
+                // 標準的な「over」合成式（Porter-Duff）。出力アルファで正規化する。
+                $outR = ($srcR * $srcA + $dstR * $dstA * (1 - $srcA)) / $outA;
+                $outG = ($srcG * $srcA + $dstG * $dstA * (1 - $srcA)) / $outA;
+                $outB = ($srcB * $srcA + $dstB * $dstA * (1 - $srcA)) / $outA;
+                $outAlphaGd = max(0, min(127, (int) round(127 * (1 - $outA))));
+
+                $color = imagecolorallocatealpha(
+                    $base,
+                    max(0, min(255, (int) round($outR))),
+                    max(0, min(255, (int) round($outG))),
+                    max(0, min(255, (int) round($outB))),
+                    $outAlphaGd
+                );
+                imagesetpixel($base, $bx, $by, $color);
             }
         }
     }
