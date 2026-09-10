@@ -29,6 +29,8 @@ a {
     display: flex;
     align-items: stretch;
     min-height: 100vh;
+    max-width: 1280px;
+    margin-inline: auto;
 }
 
 .sidebar {
@@ -74,7 +76,7 @@ a {
 
 .content {
     flex: 1;
-    margin: 24px;
+    margin: 24px auto;
     padding: 32px;
     max-width: 480px;
     background-color: var(--color-surface);
