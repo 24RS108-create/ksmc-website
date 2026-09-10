@@ -165,6 +165,31 @@ button:hover,
     font-size: 0.85em;
 }
 
+/* ボット対策のハニーポット。画面外へ追い出し、通常の利用者には見えないようにする。 */
+.honeypot {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.link-list {
+    list-style: none;
+    padding: 0;
+    margin: 16px 0 0;
+}
+
+.link-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.link-list .hint {
+    display: block;
+    margin-top: 2px;
+}
+
 .checkbox-label {
     display: inline-flex;
     align-items: center;

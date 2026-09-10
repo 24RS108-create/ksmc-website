@@ -72,3 +72,15 @@ CREATE TABLE IF NOT EXISTS post_tags (
     CONSTRAINT fk_post_tags_post_id FOREIGN KEY (post_id) REFERENCES posts (id) ON DELETE CASCADE,
     CONSTRAINT fk_post_tags_tag_id FOREIGN KEY (tag_id) REFERENCES tags (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- お問い合わせ（FR-22）。訪問者が送信し、閲覧・対応管理は管理者のみ。
+-- email は任意入力（管理者が本人へ返信する際の連絡先）。handled_at が NULL なら未対応。
+CREATE TABLE IF NOT EXISTS inquiries (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    email VARCHAR(255) NULL,
+    body TEXT NOT NULL,
+    handled_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_inquiries_handled_at (handled_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

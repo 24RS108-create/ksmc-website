@@ -13,6 +13,9 @@ $navUser = Auth::user();
         <a href="/gallery.php">模型ギャラリー</a>
         <a href="/blog.php">公式ブログ</a>
         <a href="/tags.php">タグから探す</a>
+        <a href="/contact.php">お問い合わせ</a>
+        <a href="/links.php">リンク</a>
+        <a href="/tos.php">利用規約</a>
         <?php if ($navUser === null): ?>
         <a href="/login.php">ログイン</a>
         <?php else: ?>
@@ -26,6 +29,7 @@ $navUser = Auth::user();
         <a href="/account_create.php">アカウント発行</a>
         <a href="/account_manage.php">アカウント管理</a>
         <a href="/tag_manage.php">タグ管理</a>
+        <a href="/contact_manage.php">お問い合わせ管理</a>
         <?php endif; ?>
         <a href="/logout.php">ログアウト</a>
         <?php endif; ?>
