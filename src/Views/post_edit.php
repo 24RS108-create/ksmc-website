@@ -82,7 +82,7 @@ $maxTotalMb = (int) (Uploads::MAX_TOTAL_BYTES / 1024 / 1024);
     <div class="form-row">
         <label for="images">画像を追加</label>
         <input type="file" id="images" name="images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple data-logo-adjust-target="logo-adjust-list">
-        <p class="hint">jpg / png / gif / webp、合計<?= $maxTotalMb ?>MBまで、最大<?= Uploads::MAX_FILE_COUNT ?>枚（既存分を含む）。各画像には九産模型愛好会のロゴが自動で合成されます。</p>
+        <p class="hint">jpg / png / gif / webp、合計<?= $maxTotalMb ?>MBまで、最大<?= Uploads::MAX_FILE_COUNT ?>枚（既存分を含む）。各画像には九産模型愛好会のロゴが合成されます。選択すると、画像ごとにプレビュー上でロゴの位置・大きさ・濃さを調整できます。</p>
         <div id="logo-adjust-list" class="logo-adjust-list"></div>
     </div>
 

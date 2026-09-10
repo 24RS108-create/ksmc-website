@@ -216,6 +216,18 @@ button:hover,
     font-size: 0.9em;
 }
 
+.logo-preview-canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 6px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background-color: #fff;
+    touch-action: none;
+    cursor: move;
+}
+
 .tag-more {
     display: block;
     margin-top: 8px;
