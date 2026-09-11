@@ -6,7 +6,7 @@ $navUser = Auth::user();
 ?>
 <aside class="sidebar">
     <a href="/" class="sidebar-logo">
-        <img src="/assets/images/ksmc-logo-red.png" alt="KSMC KSU MODEL CLUB">
+        <img src="/assets/images/ksmc-logo-white.png" alt="KSMC KSU MODEL CLUB">
     </a>
     <nav class="sidebar-nav">
         <a href="/">トップ</a>

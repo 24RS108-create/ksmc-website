@@ -5,7 +5,9 @@
  * @var array<int, array{post: \App\Models\Post, authorName: string, thumbnail: ?string}> $blogPosts
  */
 ?>
-<h1>九産模型愛好会</h1>
+<h1 class="home-hero">
+    <img src="/assets/images/ksmc-logo-red.png" alt="九産模型愛好会">
+</h1>
 
 <section>
     <h2>作品ギャラリー</h2>
