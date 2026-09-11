@@ -17,7 +17,7 @@ use App\Models\User;
  */
 final class GalleryController
 {
-    private const HOME_LIMIT = 5;
+    private const HOME_LIMIT = 8;
     private const TAG_INITIAL_DISPLAY_LIMIT = 25;
 
     public function showHome(): void
