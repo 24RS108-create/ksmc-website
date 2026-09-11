@@ -25,6 +25,7 @@ final class PageController
     {
         View::render('tos', [
             'title' => '利用規約',
+            'wide' => true,
         ]);
     }
 
@@ -32,6 +33,7 @@ final class PageController
     {
         View::render('about', [
             'title' => 'サークルについて',
+            'wide' => true,
         ]);
     }
 }
