@@ -48,17 +48,18 @@ $maxTotalMb = (int) (Uploads::MAX_TOTAL_BYTES / 1024 / 1024);
     <div class="form-row">
         <label for="body">本文</label>
         <textarea id="body" name="body"><?= View::e($formBody) ?></textarea>
-        <p class="hint">公開するには入力が必要です（下書き保存は未入力でも可）。</p>
+        <p class="hint">公開するには入力が必要です（下書き保存は未入力でも可）。本文中に <code>[image:1]</code> のように入力すると、その位置に画像を挿入できます（番号は下の画像一覧・選択欄で確認できます）。使わない場合は従来通り画像が本文の上にまとめて表示されます。</p>
     </div>
 
     <?php if (!empty($existingImages)): ?>
     <div class="form-row">
         <label>登録済みの画像</label>
         <div class="post-image-list">
-            <?php foreach ($existingImages as $image): ?>
+            <?php foreach ($existingImages as $index => $image): ?>
             <?php if ($canDeleteImages): ?>
             <label class="existing-image-item">
                 <img class="post-image" src="<?= View::e($image['display_path']) ?>" alt="">
+                <span class="hint">画像<?= $index + 1 ?></span>
                 <span class="checkbox-label">
                     <input type="checkbox" name="delete_image_ids[]" value="<?= (int) $image['id'] ?>">
                     この画像を削除する
@@ -67,12 +68,13 @@ $maxTotalMb = (int) (Uploads::MAX_TOTAL_BYTES / 1024 / 1024);
             <?php else: ?>
             <span class="existing-image-item">
                 <img class="post-image" src="<?= View::e($image['display_path']) ?>" alt="">
+                <span class="hint">画像<?= $index + 1 ?></span>
             </span>
             <?php endif; ?>
             <?php endforeach; ?>
         </div>
         <?php if ($canDeleteImages): ?>
-        <p class="hint">削除する画像にチェックを入れて保存すると、確認画面で削除内容を確認できます。</p>
+        <p class="hint">削除する画像にチェックを入れて保存すると、確認画面で削除内容を確認できます。本文の [image:N] 番号は、上の並び順（削除した画像を除く）＋新しく追加する画像の順で決まります。削除の組み合わせによって番号がずれる場合があるため、最終的な番号は確認画面で確かめてください。</p>
         <?php else: ?>
         <p class="hint">休止会員は既存の画像を削除できません。削除したい場合は投稿自体を削除してください。</p>
         <?php endif; ?>
@@ -81,7 +83,7 @@ $maxTotalMb = (int) (Uploads::MAX_TOTAL_BYTES / 1024 / 1024);
 
     <div class="form-row">
         <label for="images">画像を追加</label>
-        <input type="file" id="images" name="images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple data-logo-adjust-target="logo-adjust-list">
+        <input type="file" id="images" name="images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple data-logo-adjust-target="logo-adjust-list" data-image-number-offset="<?= count($existingImages) ?>">
         <p class="hint">jpg / png / gif / webp、合計<?= $maxTotalMb ?>MBまで、最大<?= Uploads::MAX_FILE_COUNT ?>枚（既存分を含む）。各画像には九産模型愛好会のロゴが合成されます。選択すると、画像ごとにプレビュー上でロゴの位置・大きさ・濃さを調整できます。</p>
         <div id="logo-adjust-list" class="logo-adjust-list"></div>
     </div>

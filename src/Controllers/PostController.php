@@ -8,6 +8,7 @@ use App\Config\Database;
 use App\Core\Auth;
 use App\Core\Csrf;
 use App\Core\ImageUploader;
+use App\Core\PostBodyRenderer;
 use App\Core\View;
 use App\Models\Image;
 use App\Models\Post;
@@ -158,10 +159,14 @@ final class PostController
         $user = $this->requirePostableUser();
         $pending = $this->requirePending('create', $user);
 
+        // 新規投稿は既存画像を持たないため、$pending['images']がそのまま最終的な表示順になる。
+        $rendered = PostBodyRenderer::build($pending['body'], $pending['images']);
+
         View::render('post_create_confirm', [
             'title' => '投稿内容の確認',
             'wide' => true,
             'pending' => $pending,
+            'rendered' => $rendered,
             'postTypeLabel' => $pending['post_type'] === 'official_blog' ? 'サークル公式ブログ' : '個人の作品記事',
             'statusLabel' => $pending['status'] === 'published' ? '公開' : '下書き',
             'tagNames' => $this->resolveTagNames($pending['selected_tag_ids'], $pending['new_tag_names']),
@@ -413,11 +418,19 @@ final class PostController
             static fn (array $image): bool => !in_array($image['id'], $pending['delete_image_ids'], true)
         ));
 
+        // 確定処理（confirmEdit）では削除後に残る既存画像の後ろへ新規画像を追加するため、
+        // プレビューの並び順もそれに合わせる（$remainingExistingImages + $pending['images']）。
+        $rendered = PostBodyRenderer::build(
+            $pending['body'],
+            array_merge($remainingExistingImages, $pending['images'])
+        );
+
         View::render('post_edit_confirm', [
             'title' => '投稿内容の確認',
             'wide' => true,
             'post' => $post,
             'pending' => $pending,
+            'rendered' => $rendered,
             'remainingExistingImages' => $remainingExistingImages,
             'deletedCount' => count($pending['delete_image_ids']),
             'statusLabel' => $pending['status'] === 'published' ? '公開' : '下書き',

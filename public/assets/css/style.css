@@ -425,6 +425,12 @@ a.status-badge:hover {
     white-space: pre-wrap;
 }
 
+/* 本文中の[image:N]プレースホルダーから差し込まれる画像（ブログ形式表示）。 */
+.post-inline-image {
+    display: block;
+    margin: 16px auto;
+}
+
 .post-tags {
     display: flex;
     flex-wrap: wrap;

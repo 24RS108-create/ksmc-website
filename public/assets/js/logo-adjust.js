@@ -75,7 +75,7 @@
         };
     }
 
-    function buildBlock(file) {
+    function buildBlock(file, number) {
         var state = {
             posX: DEFAULTS.posX,
             posY: DEFAULTS.posY,
@@ -88,8 +88,13 @@
 
         var title = document.createElement('p');
         title.className = 'logo-adjust-filename';
-        title.textContent = file.name;
+        title.textContent = '画像' + number + '（' + file.name + '）';
         block.appendChild(title);
+
+        var numberHint = document.createElement('p');
+        numberHint.className = 'hint';
+        numberHint.textContent = '本文中でこの画像を挿入したい位置に [image:' + number + '] と入力してください。';
+        block.appendChild(numberHint);
 
         var posXInput = document.createElement('input');
         posXInput.type = 'hidden';
@@ -237,6 +242,10 @@
             return;
         }
 
+        // 編集画面では既存画像の後ろに新規画像が並ぶため、本文プレースホルダー用の番号は
+        // 既存画像の枚数分だけ繰り上げる（data-image-number-offset属性で指定）。
+        var numberOffset = parseInt(input.getAttribute('data-image-number-offset') || '0', 10) || 0;
+
         input.addEventListener('change', function () {
             container.innerHTML = '';
 
@@ -250,7 +259,7 @@
             container.appendChild(heading);
 
             for (var i = 0; i < input.files.length; i++) {
-                container.appendChild(buildBlock(input.files[i]));
+                container.appendChild(buildBlock(input.files[i], numberOffset + i + 1));
             }
         });
     }

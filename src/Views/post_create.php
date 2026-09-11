@@ -57,7 +57,7 @@ $maxTotalMb = (int) (Uploads::MAX_TOTAL_BYTES / 1024 / 1024);
     <div class="form-row">
         <label for="body">本文</label>
         <textarea id="body" name="body"><?= View::e($formBody) ?></textarea>
-        <p class="hint">公開するには入力が必要です（下書き保存は未入力でも可）。</p>
+        <p class="hint">公開するには入力が必要です（下書き保存は未入力でも可）。本文中に <code>[image:1]</code> のように入力すると、その位置に画像を挿入できます（番号は下の画像選択欄で確認できます）。使わない場合は従来通り画像が本文の上にまとめて表示されます。</p>
     </div>
 
     <div class="form-row">
