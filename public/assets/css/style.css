@@ -19,6 +19,9 @@ body {
     font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
     background-color: var(--color-bg);
     color: var(--color-text);
+    /* 改行やスペースの無い長い文字列（URL等）でもカード幅を超えて折り返す。継承されるため
+       投稿本文に限らずタイトル・タグ名・お問い合わせ本文等にも効く。 */
+    overflow-wrap: break-word;
 }
 
 a {
@@ -76,6 +79,9 @@ a {
 
 .content {
     flex: 1;
+    /* フレックスアイテムの既定のmin-width:autoを解除し、中身（折り返せない長い文字列）に
+       引っ張られてカードごとmax-widthを超えて押し広がるのを防ぐ。 */
+    min-width: 0;
     margin: 24px auto;
     padding: 32px;
     max-width: 480px;
@@ -296,6 +302,7 @@ button:hover,
 
 .post-list-title {
     flex: 1;
+    min-width: 0;
 }
 
 .post-list-actions a {
