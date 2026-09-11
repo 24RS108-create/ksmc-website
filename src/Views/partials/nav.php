@@ -10,6 +10,7 @@ $navUser = Auth::user();
     </a>
     <nav class="sidebar-nav">
         <a href="/">トップ</a>
+        <a href="/about.php">サークルについて</a>
         <a href="/gallery.php">模型ギャラリー</a>
         <a href="/blog.php">公式ブログ</a>
         <a href="/tags.php">タグから探す</a>

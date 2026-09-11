@@ -91,6 +91,7 @@ final class GalleryController
             'title' => $post->title,
             'wide' => true,
             'post' => $post,
+            'authorId' => $author?->id,
             'authorName' => $author?->displayName ?? '(退会した会員)',
             'images' => Image::findByPostId($post->id),
             'tags' => Tag::findByPostId($post->id),
@@ -98,8 +99,30 @@ final class GalleryController
     }
 
     /**
+     * 会員ページ（FR-28）。指定した会員の表示名と公開済み投稿一覧を表示する。
+     * プロフィールメモ（profile_note）は非公開項目のため表示しない。
+     */
+    public function showMember(): void
+    {
+        $id = (int) ($_GET['id'] ?? 0);
+        $member = $id > 0 ? User::findById($id) : null;
+
+        if ($member === null) {
+            View::render('member_not_found', ['title' => '会員が見つかりません']);
+            return;
+        }
+
+        View::render('member', [
+            'title' => $member->displayName,
+            'wide' => true,
+            'member' => $member,
+            'posts' => $this->decorate(Post::findPublishedByUserId($member->id)),
+        ]);
+    }
+
+    /**
      * @param array<int, Post> $posts
-     * @return array<int, array{post: Post, authorName: string, thumbnail: ?string}>
+     * @return array<int, array{post: Post, authorId: ?int, authorName: string, thumbnail: ?string}>
      */
     private function decorate(array $posts): array
     {
@@ -110,6 +133,7 @@ final class GalleryController
 
             $decorated[] = [
                 'post' => $post,
+                'authorId' => $author?->id,
                 'authorName' => $author?->displayName ?? '(退会した会員)',
                 'thumbnail' => $images[0]['display_path'] ?? null,
             ];

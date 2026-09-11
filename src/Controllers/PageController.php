@@ -7,7 +7,8 @@ namespace App\Controllers;
 use App\Core\View;
 
 /**
- * 内容が固定的で、管理者による頻繁な更新を想定しないページ（FR-23 リンク集 / FR-24 利用規約）。
+ * 内容が固定的で、管理者による頻繁な更新を想定しないページ
+ * （FR-23 リンク集 / FR-24 利用規約 / FR-27 サークルについて）。
  * 更新はビューファイルを編集して再デプロイする運用とする（管理者フォームは設けない）。
  * 現段階の掲載内容はいずれもダミー。
  */
@@ -24,6 +25,13 @@ final class PageController
     {
         View::render('tos', [
             'title' => '利用規約',
+        ]);
+    }
+
+    public function showAbout(): void
+    {
+        View::render('about', [
+            'title' => 'サークルについて',
         ]);
     }
 }

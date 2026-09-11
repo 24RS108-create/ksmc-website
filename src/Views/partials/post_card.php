@@ -2,7 +2,7 @@
 
 use App\Core\View;
 
-/** @var array{post: \App\Models\Post, authorName: string, thumbnail: ?string} $item */
+/** @var array{post: \App\Models\Post, authorId: ?int, authorName: string, thumbnail: ?string} $item */
 $post = $item['post'];
 ?>
 <a class="post-card" href="/post_view.php?id=<?= $post->id ?>">

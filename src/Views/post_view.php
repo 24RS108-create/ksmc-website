@@ -5,6 +5,7 @@ use App\Core\View;
 
 /**
  * @var \App\Models\Post $post
+ * @var ?int $authorId
  * @var string $authorName
  * @var array<int, array{id: int, display_path: string, sort_order: int, file_size_kb: int}> $images
  * @var array<int, array{id: int, name: string}> $tags
@@ -25,7 +26,12 @@ $rendered = PostBodyRenderer::build($post->body, $images);
 
 <h1><?= View::e($post->title) ?></h1>
 <p class="hint">
-    <?= View::e($authorName) ?>・<?= View::e($post->publishedAt !== null ? substr($post->publishedAt, 0, 10) : '') ?>
+    <?php if ($authorId !== null): ?>
+    <a href="/member.php?id=<?= $authorId ?>"><?= View::e($authorName) ?></a>
+    <?php else: ?>
+    <?= View::e($authorName) ?>
+    <?php endif; ?>
+    ・<?= View::e($post->publishedAt !== null ? substr($post->publishedAt, 0, 10) : '') ?>
 </p>
 
 <?php if (!empty($rendered['leadingImages'])): ?>

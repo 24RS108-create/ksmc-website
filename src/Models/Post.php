@@ -191,6 +191,27 @@ final class Post
     }
 
     /**
+     * 会員ページ（FR-28）表示用。指定した会員の公開済み投稿のみを取得する（下書きは表示しない）。
+     *
+     * @return array<int, self>
+     */
+    public static function findPublishedByUserId(int $userId): array
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT * FROM posts WHERE user_id = :user_id AND status = 'published'
+             ORDER BY published_at DESC"
+        );
+        $stmt->execute(['user_id' => $userId]);
+
+        $posts = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $posts[] = new self($row);
+        }
+
+        return $posts;
+    }
+
+    /**
      * 公開済みの投稿を1件取得する（未公開の投稿は訪問者に見せない、FR-15）。
      */
     public static function findPublishedById(int $id): ?self
