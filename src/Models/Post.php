@@ -136,15 +136,16 @@ final class Post
 
     /**
      * トップページ・一覧ページ表示用（FR-15）。公開済みの投稿のみを種別ごとに取得する。
+     * $offsetはページ分割（FR-29）用。$limitを指定しない場合は無視される。
      *
      * @return array<int, self>
      */
-    public static function findPublishedByType(string $postType, ?int $limit = null): array
+    public static function findPublishedByType(string $postType, ?int $limit = null, int $offset = 0): array
     {
         $sql = "SELECT * FROM posts WHERE post_type = :post_type AND status = 'published'
                 ORDER BY published_at DESC";
         if ($limit !== null) {
-            $sql .= ' LIMIT ' . max(0, $limit);
+            $sql .= ' LIMIT ' . max(0, $limit) . ' OFFSET ' . max(0, $offset);
         }
 
         $stmt = Database::connection()->prepare($sql);
@@ -159,13 +160,27 @@ final class Post
     }
 
     /**
+     * ページ分割（FR-29）用の総件数取得。findPublishedByType()と対になる。
+     */
+    public static function countPublishedByType(string $postType): int
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT COUNT(*) FROM posts WHERE post_type = :post_type AND status = 'published'"
+        );
+        $stmt->execute(['post_type' => $postType]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
      * タグ別一覧・複数タグ絞り込み用（FR-18）。選択された全タグを持つ公開済み投稿のみを返す
      * （AND条件）。個人作品・公式ブログの区別なく対象とする。
+     * $offsetはページ分割（FR-29）用。$limitを指定しない場合は無視される。
      *
      * @param array<int, int> $tagIds
      * @return array<int, self>
      */
-    public static function findPublishedByTagIds(array $tagIds): array
+    public static function findPublishedByTagIds(array $tagIds, ?int $limit = null, int $offset = 0): array
     {
         if (empty($tagIds)) {
             return [];
@@ -178,6 +193,9 @@ final class Post
                 GROUP BY p.id
                 HAVING COUNT(DISTINCT pt.tag_id) = ?
                 ORDER BY p.published_at DESC";
+        if ($limit !== null) {
+            $sql .= ' LIMIT ' . max(0, $limit) . ' OFFSET ' . max(0, $offset);
+        }
 
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute([...$tagIds, count($tagIds)]);
@@ -191,16 +209,46 @@ final class Post
     }
 
     /**
+     * ページ分割（FR-29）用の総件数取得。findPublishedByTagIds()と対になる。
+     *
+     * @param array<int, int> $tagIds
+     */
+    public static function countPublishedByTagIds(array $tagIds): int
+    {
+        if (empty($tagIds)) {
+            return 0;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($tagIds), '?'));
+        $sql = "SELECT COUNT(*) FROM (
+                    SELECT p.id FROM posts p
+                    JOIN post_tags pt ON pt.post_id = p.id
+                    WHERE p.status = 'published' AND pt.tag_id IN ({$placeholders})
+                    GROUP BY p.id
+                    HAVING COUNT(DISTINCT pt.tag_id) = ?
+                ) AS matched";
+
+        $stmt = Database::connection()->prepare($sql);
+        $stmt->execute([...$tagIds, count($tagIds)]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
      * 会員ページ（FR-28）表示用。指定した会員の公開済み投稿のみを取得する（下書きは表示しない）。
+     * $offsetはページ分割（FR-29）用。$limitを指定しない場合は無視される。
      *
      * @return array<int, self>
      */
-    public static function findPublishedByUserId(int $userId): array
+    public static function findPublishedByUserId(int $userId, ?int $limit = null, int $offset = 0): array
     {
-        $stmt = Database::connection()->prepare(
-            "SELECT * FROM posts WHERE user_id = :user_id AND status = 'published'
-             ORDER BY published_at DESC"
-        );
+        $sql = "SELECT * FROM posts WHERE user_id = :user_id AND status = 'published'
+                ORDER BY published_at DESC";
+        if ($limit !== null) {
+            $sql .= ' LIMIT ' . max(0, $limit) . ' OFFSET ' . max(0, $offset);
+        }
+
+        $stmt = Database::connection()->prepare($sql);
         $stmt->execute(['user_id' => $userId]);
 
         $posts = [];
@@ -209,6 +257,19 @@ final class Post
         }
 
         return $posts;
+    }
+
+    /**
+     * ページ分割（FR-29）用の総件数取得。findPublishedByUserId()と対になる。
+     */
+    public static function countPublishedByUserId(int $userId): int
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT COUNT(*) FROM posts WHERE user_id = :user_id AND status = 'published'"
+        );
+        $stmt->execute(['user_id' => $userId]);
+
+        return (int) $stmt->fetchColumn();
     }
 
     /**

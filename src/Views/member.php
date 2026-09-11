@@ -8,6 +8,9 @@ use App\Core\View;
  *
  * @var \App\Models\User $member
  * @var array<int, array{post: \App\Models\Post, authorId: ?int, authorName: string, thumbnail: ?string}> $posts
+ * @var array{page: int, totalPages: int, offset: int, perPage: int, totalCount: int} $pagination
+ * @var string $pageBaseUrl
+ * @var array<string, mixed> $extraQuery
  */
 ?>
 <p><a href="/gallery.php">作品ギャラリーへ戻る</a></p>
@@ -22,4 +25,5 @@ use App\Core\View;
     <?php include __DIR__ . '/partials/post_card.php'; ?>
     <?php endforeach; ?>
 </div>
+<?php include __DIR__ . '/partials/pagination.php'; ?>
 <?php endif; ?>

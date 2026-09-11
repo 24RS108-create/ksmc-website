@@ -444,6 +444,41 @@ a.status-badge:hover {
     gap: 8px;
 }
 
+/* カード一覧共通のページ分割ナビゲーション（FR-29）。 */
+.pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 24px 0 0;
+}
+
+.pagination a,
+.pagination-current {
+    display: inline-block;
+    min-width: 1.6em;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 0.9em;
+}
+
+.pagination a {
+    color: var(--color-brand);
+    border: 1px solid var(--color-border);
+}
+
+.pagination a:hover {
+    background-color: #fbecea;
+}
+
+.pagination-current {
+    background-color: var(--color-brand);
+    color: #fff;
+    font-weight: bold;
+}
+
 @media (max-width: 700px) {
     .app-shell {
         flex-direction: column;

@@ -7,7 +7,10 @@ use App\Core\View;
  * @var array<int, array{id: int, name: string, post_count: int}> $moreTags
  * @var bool $expandMoreTags
  * @var array<int, int> $selectedTagIds
- * @var array<int, array{post: \App\Models\Post, authorName: string, thumbnail: ?string}> $posts
+ * @var array<int, array{post: \App\Models\Post, authorId: ?int, authorName: string, thumbnail: ?string}> $posts
+ * @var array{page: int, totalPages: int, offset: int, perPage: int, totalCount: int} $pagination
+ * @var string $pageBaseUrl
+ * @var array<string, mixed> $extraQuery
  */
 ?>
 <h1>タグから探す</h1>
@@ -55,6 +58,7 @@ use App\Core\View;
     <?php include __DIR__ . '/partials/post_card.php'; ?>
     <?php endforeach; ?>
 </div>
+<?php include __DIR__ . '/partials/pagination.php'; ?>
 <?php endif; ?>
 
 <?php endif; ?>

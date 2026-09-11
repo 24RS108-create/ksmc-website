@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\Paginator;
 use App\Core\View;
 use App\Models\Image;
 use App\Models\Post;
@@ -31,19 +32,35 @@ final class GalleryController
 
     public function showGallery(): void
     {
+        $pagination = Paginator::resolve(
+            $this->requestedPage(),
+            Post::countPublishedByType('individual')
+        );
+
         View::render('gallery', [
             'title' => '作品ギャラリー',
             'wide' => true,
-            'posts' => $this->decorate(Post::findPublishedByType('individual')),
+            'posts' => $this->decorate(Post::findPublishedByType('individual', $pagination['perPage'], $pagination['offset'])),
+            'pagination' => $pagination,
+            'pageBaseUrl' => '/gallery.php',
+            'extraQuery' => [],
         ]);
     }
 
     public function showBlog(): void
     {
+        $pagination = Paginator::resolve(
+            $this->requestedPage(),
+            Post::countPublishedByType('official_blog')
+        );
+
         View::render('blog', [
             'title' => '公式ブログ',
             'wide' => true,
-            'posts' => $this->decorate(Post::findPublishedByType('official_blog')),
+            'posts' => $this->decorate(Post::findPublishedByType('official_blog', $pagination['perPage'], $pagination['offset'])),
+            'pagination' => $pagination,
+            'pageBaseUrl' => '/blog.php',
+            'extraQuery' => [],
         ]);
     }
 
@@ -64,6 +81,11 @@ final class GalleryController
         $moreTagIds = array_column($moreTags, 'id');
         $expandMoreTags = array_intersect($tagIds, $moreTagIds) !== [];
 
+        $pagination = Paginator::resolve(
+            $this->requestedPage(),
+            empty($tagIds) ? 0 : Post::countPublishedByTagIds($tagIds)
+        );
+
         View::render('tags', [
             'title' => 'タグから探す',
             'wide' => true,
@@ -71,7 +93,10 @@ final class GalleryController
             'moreTags' => $moreTags,
             'expandMoreTags' => $expandMoreTags,
             'selectedTagIds' => $tagIds,
-            'posts' => empty($tagIds) ? [] : $this->decorate(Post::findPublishedByTagIds($tagIds)),
+            'posts' => empty($tagIds) ? [] : $this->decorate(Post::findPublishedByTagIds($tagIds, $pagination['perPage'], $pagination['offset'])),
+            'pagination' => $pagination,
+            'pageBaseUrl' => '/tags.php',
+            'extraQuery' => ['tag_ids' => $tagIds],
         ]);
     }
 
@@ -112,12 +137,31 @@ final class GalleryController
             return;
         }
 
+        $pagination = Paginator::resolve(
+            $this->requestedPage(),
+            Post::countPublishedByUserId($member->id)
+        );
+
         View::render('member', [
             'title' => $member->displayName,
             'wide' => true,
             'member' => $member,
-            'posts' => $this->decorate(Post::findPublishedByUserId($member->id)),
+            'posts' => $this->decorate(Post::findPublishedByUserId($member->id, $pagination['perPage'], $pagination['offset'])),
+            'pagination' => $pagination,
+            'pageBaseUrl' => '/member.php',
+            'extraQuery' => ['id' => $member->id],
         ]);
+    }
+
+    /**
+     * クエリパラメータpageを読み取る。不正な値（数値でない・0以下等）は1として扱う
+     * （Paginator::resolve()側でも範囲チェックするため、ここでは大まかな検証のみ）。
+     */
+    private function requestedPage(): int
+    {
+        $page = (int) ($_GET['page'] ?? 1);
+
+        return $page > 0 ? $page : 1;
     }
 
     /**
