@@ -124,21 +124,21 @@ VirtualHost・DocumentRoot・アップロード権限は4.5章で構築済みの
 - [ ] 画像付き投稿（作成・確認画面・公開）が一通り動作する
 - [ ] お問い合わせフォームの送信・管理画面での確認ができる
 
-## 7. 顧問確認前に対応する既知の課題
+## 7. 顧問確認前に対応する既知の課題 ✅ 全項目完了（2026-09-19）
 
-これまでのコードレビュー・疑似本番環境での検証で判明した未対応事項（詳細は会話履歴のレビューまとめを参照）。公開前に直すか、公開後の早期対応とするかを判断する。
+これまでのコードレビュー・疑似本番環境での検証で判明した未対応事項。**方針（2026-09-19決定）通り、顧問確認（4.6章）前にすべて修正済み**（コミット`db0f0af`、使い捨てDocker環境で全項目検証済み）。
 
-**方針（2026-09-19決定）：顧問確認（4.6章）までに以下すべてを完了する。**
+- [x] ロゴ合成処理（`LogoCompositor`）の画像ピクセル寸法上限が無い問題：`Uploads::MAX_IMAGE_DIMENSION_PX`（6000px）を追加し、`ImageUploader::validate()`でアップロード時点で拒否するよう修正
+- [x] 広報担当権限剥奪後の投稿確定時チェック漏れ（`PostController::confirmCreate()`）：確定直前に再チェックを追加
+- [x] 管理者権限委譲で休止会員を除外していない（`AccountController::findTransferTargetOrRedirect()`）：除外条件を追加
+- [x] 投稿編集時の画像削除とDBロールバックの不整合（`PostController::confirmEdit()`）：実ファイル削除をコミット成功後に遅延
+- [x] 会員ページが休止会員を除外していない（`GalleryController::showMember()`）：除外を追加
+- [x] セッションCookieのhttponly/secure/samesite未設定（`bootstrap.php`）：`session_set_cookie_params()`で明示
+- [x] 管理者PR付与操作のCSRF失敗時無言リダイレクト（`AccountController::updatePr()`）：エラー表示に変更
+- [x] 一覧表示のN+1クエリ（`GalleryController::decorate()`）：`User::findByIds()` / `Image::findThumbnailsByPostIds()`で一括取得に変更
+- [x] 投稿作成/編集フローの重複（`PostController`）：共通処理をprivateメソッドへ切り出し（post_type・既存画像削除等の異なる部分は維持）
 
-- [ ] ロゴ合成処理（`LogoCompositor`）の画像ピクセル寸法上限が無い問題：疑似本番環境でOOM Killを実際に再現済み
-- [ ] 広報担当権限剥奪後の投稿確定時チェック漏れ（`PostController.php:206`）
-- [ ] 管理者権限委譲で休止会員を除外していない（`AccountController.php:277`）
-- [ ] 投稿編集時の画像削除とDBロールバックの不整合（`PostController.php:474`）
-- [ ] 会員ページが休止会員を除外していない（`GalleryController.php:130`）
-- [ ] セッションCookieのhttponly/secure/samesite未設定（`bootstrap.php:38`）
-- [ ] 管理者PR付与操作のCSRF失敗時無言リダイレクト（`AccountController.php:211`）
-- [ ] 一覧表示のN+1クエリ（`GalleryController.php:171`）
-- [ ] 投稿作成/編集フローの重複（`PostController.php:51`）
+**残作業**：この修正を本番サーバーの確認環境（4.5章）へ反映する（`git pull`のみで反映可能）。
 
 ## 8. バックアップ体制の初期化（NFR-06）
 
