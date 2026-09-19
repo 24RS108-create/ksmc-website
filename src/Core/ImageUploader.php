@@ -42,6 +42,15 @@ final class ImageUploader
                 continue;
             }
 
+            // ファイルサイズが小さくても、圧縮率の高い画像はピクセル数が巨大な場合があり、
+            // ロゴ合成時のGDでのデコードでメモリを大量消費する（本番相当環境でのOOM Killを確認済み）。
+            // ファイルサイズと独立に、ピクセル寸法そのものも上限チェックする。
+            if ($imageInfo[0] > Uploads::MAX_IMAGE_DIMENSION_PX || $imageInfo[1] > Uploads::MAX_IMAGE_DIMENSION_PX) {
+                $errors[] = "画像「{$file['name']}」の縦または横のサイズが大きすぎます（"
+                    . Uploads::MAX_IMAGE_DIMENSION_PX . 'pxまで）。';
+                continue;
+            }
+
             $validated[] = [
                 'name' => $file['name'],
                 'tmp_name' => $file['tmp_name'],

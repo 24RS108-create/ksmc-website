@@ -52,6 +52,33 @@ final class User
     }
 
     /**
+     * 一覧表示（ギャラリー・ブログ・会員ページ等）でのN+1クエリ回避用。
+     * 投稿ごとにfindById()を呼ぶ代わりに、必要なユーザーIDをまとめて1回で取得する。
+     *
+     * @param array<int, int> $ids
+     * @return array<int, self> idをキーにした連想配列
+     */
+    public static function findByIds(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
+        if (empty($ids)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = Database::connection()->prepare("SELECT * FROM users WHERE id IN ({$placeholders})");
+        $stmt->execute($ids);
+
+        $usersById = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $user = new self($row);
+            $usersById[$user->id] = $user;
+        }
+
+        return $usersById;
+    }
+
+    /**
      * アカウント管理画面での一覧表示用。ログインID順に全会員を返す。
      *
      * @return array<int, self>

@@ -52,17 +52,18 @@ final class PostController
     {
         $user = $this->requirePostableUser();
 
-        $action = (string) ($_POST['action'] ?? '');
-        $status = $action === 'publish' ? 'published' : 'draft';
+        $actionInfo = $this->parseActionAndStatus();
+        $action = $actionInfo['action'];
+        $status = $actionInfo['status'];
 
         $postType = (string) ($_POST['post_type'] ?? 'individual');
         $postTitle = trim((string) ($_POST['title'] ?? ''));
         $body = trim((string) ($_POST['body'] ?? ''));
         $newTagsRaw = (string) ($_POST['new_tags'] ?? '');
-        $selectedTagIds = array_map('intval', (array) ($_POST['tag_ids'] ?? []));
+        $requestedTagIds = array_map('intval', (array) ($_POST['tag_ids'] ?? []));
         $errors = [];
 
-        if (!in_array($action, ['draft', 'publish'], true) || !Csrf::verify($_POST['csrf_token'] ?? null)) {
+        if (!$actionInfo['valid']) {
             $errors[] = '不正なリクエストです。もう一度お試しください。';
         }
         if (!in_array($postType, ['individual', 'official_blog'], true)) {
@@ -72,24 +73,13 @@ final class PostController
             $errors[] = '公式ブログへの投稿権限がありません。';
             $postType = 'individual';
         }
-        if ($postTitle === '') {
-            $errors[] = 'タイトルを入力してください。';
-        } elseif (mb_strlen($postTitle) > 200) {
-            $errors[] = 'タイトルは200文字以内で入力してください。';
-        }
+        $errors = array_merge($errors, $this->validateTitle($postTitle));
 
         $uploadResult = ImageUploader::validate($_FILES['images'] ?? []);
         $errors = array_merge($errors, $uploadResult['errors']);
         $errors = array_merge($errors, ImageUploader::checkAggregateLimits($uploadResult['files']));
 
-        // ロゴ調整フォーム（FR-19、JSにより画像ごとに動的生成）の値。アップロードと同じ並び順。
-        $logoSettings = ImageUploader::parseLogoSettings(
-            (array) ($_POST['logo_pos_x'] ?? []),
-            (array) ($_POST['logo_pos_y'] ?? []),
-            (array) ($_POST['logo_scale'] ?? []),
-            (array) ($_POST['logo_opacity'] ?? []),
-            count($uploadResult['files'])
-        );
+        $logoSettings = $this->buildLogoSettingsFromRequest(count($uploadResult['files']));
 
         // 公開時のみ本文・画像を必須とする。下書きは未完成のまま保存できる（FR-05）。
         if ($status === 'published') {
@@ -101,11 +91,10 @@ final class PostController
             }
         }
 
-        $existingTags = Tag::findAll();
-        $existingTagIds = array_column($existingTags, 'id');
-        $selectedTagIds = array_values(array_intersect($selectedTagIds, $existingTagIds));
-
-        $newTagNames = $this->parseTagNames($newTagsRaw);
+        $tagForm = $this->resolveTagForm($requestedTagIds, $newTagsRaw);
+        $selectedTagIds = $tagForm['selectedTagIds'];
+        $newTagNames = $tagForm['newTagNames'];
+        $existingTags = $tagForm['existingTags'];
 
         if (!empty($errors)) {
             $this->renderForm($errors, null, $postTitle, $body, $newTagsRaw, $selectedTagIds, $existingTags, $user, $postType);
@@ -180,6 +169,24 @@ final class PostController
     {
         $user = $this->requirePostableUser();
         $pending = $this->requirePending('create', $user);
+
+        // 確認画面滞在中に広報担当権限が剥奪される可能性があるため、確定直前に再チェックする
+        // （create()時点のチェックだけでは、確認画面から確定までの間の権限変更に追従できない）。
+        if ($pending['post_type'] === 'official_blog' && !$this->canPostOfficialBlog($user)) {
+            $this->clearPending();
+            $this->renderForm(
+                ['公式ブログへの投稿権限がありません。もう一度お試しください。'],
+                null,
+                '',
+                '',
+                '',
+                [],
+                Tag::findAll(),
+                $user,
+                'individual'
+            );
+            return;
+        }
 
         if (!Csrf::verify($_POST['csrf_token'] ?? null)) {
             header('Location: /post_create_confirm.php');
@@ -292,23 +299,20 @@ final class PostController
     {
         [$post, $user] = $this->requirePostAccess();
 
-        $action = (string) ($_POST['action'] ?? '');
-        $status = $action === 'publish' ? 'published' : 'draft';
+        $actionInfo = $this->parseActionAndStatus();
+        $action = $actionInfo['action'];
+        $status = $actionInfo['status'];
 
         $postTitle = trim((string) ($_POST['title'] ?? ''));
         $body = trim((string) ($_POST['body'] ?? ''));
         $newTagsRaw = (string) ($_POST['new_tags'] ?? '');
-        $selectedTagIds = array_map('intval', (array) ($_POST['tag_ids'] ?? []));
+        $requestedTagIds = array_map('intval', (array) ($_POST['tag_ids'] ?? []));
         $errors = [];
 
-        if (!in_array($action, ['draft', 'publish'], true) || !Csrf::verify($_POST['csrf_token'] ?? null)) {
+        if (!$actionInfo['valid']) {
             $errors[] = '不正なリクエストです。もう一度お試しください。';
         }
-        if ($postTitle === '') {
-            $errors[] = 'タイトルを入力してください。';
-        } elseif (mb_strlen($postTitle) > 200) {
-            $errors[] = 'タイトルは200文字以内で入力してください。';
-        }
+        $errors = array_merge($errors, $this->validateTitle($postTitle));
 
         $existingImages = Image::findByPostId($post->id);
         $existingCount = count($existingImages);
@@ -338,14 +342,7 @@ final class PostController
             ImageUploader::checkAggregateLimits($uploadResult['files'], $remainingExistingCount, $remainingExistingBytes)
         );
 
-        // ロゴ調整フォーム（FR-19、JSにより画像ごとに動的生成）の値。アップロードと同じ並び順。
-        $logoSettings = ImageUploader::parseLogoSettings(
-            (array) ($_POST['logo_pos_x'] ?? []),
-            (array) ($_POST['logo_pos_y'] ?? []),
-            (array) ($_POST['logo_scale'] ?? []),
-            (array) ($_POST['logo_opacity'] ?? []),
-            count($uploadResult['files'])
-        );
+        $logoSettings = $this->buildLogoSettingsFromRequest(count($uploadResult['files']));
 
         // 公開時のみ本文・画像を必須とする（FR-05）。削除後に残る画像があれば新規追加は不要。
         if ($status === 'published') {
@@ -357,11 +354,9 @@ final class PostController
             }
         }
 
-        $existingTags = Tag::findAll();
-        $existingTagIds = array_column($existingTags, 'id');
-        $selectedTagIds = array_values(array_intersect($selectedTagIds, $existingTagIds));
-
-        $newTagNames = $this->parseTagNames($newTagsRaw);
+        $tagForm = $this->resolveTagForm($requestedTagIds, $newTagsRaw);
+        $selectedTagIds = $tagForm['selectedTagIds'];
+        $newTagNames = $tagForm['newTagNames'];
 
         if (!empty($errors)) {
             $this->renderEditForm($post, $errors, null, $postTitle, $body, $selectedTagIds, $newTagsRaw, $user);
@@ -467,11 +462,16 @@ final class PostController
         $connection = Database::connection();
         $connection->beginTransaction();
 
+        // 削除対象の画像ファイルは、DBの確定（コミット）後にまとめて削除する。トランザクション内で
+        // 先に実ファイルを消してしまうと、後続処理の失敗でロールバックされた際にDBの行だけ復元され、
+        // 実ファイルは戻らないという不整合が生じるため。
+        $imagesPendingFileDeletion = [];
+
         try {
             foreach ($pending['delete_image_ids'] as $imageId) {
                 $image = Image::findById($imageId);
                 if ($image !== null && $image['post_id'] === $post->id) {
-                    $this->deleteImageFiles($image);
+                    $imagesPendingFileDeletion[] = $image;
                     Image::deleteById($imageId);
                 }
             }
@@ -519,6 +519,11 @@ final class PostController
                 $user
             );
             return;
+        }
+
+        // ここまで到達すればDBは確定済みのため、削除予定だった画像の実ファイルを削除する。
+        foreach ($imagesPendingFileDeletion as $image) {
+            $this->deleteImageFiles($image);
         }
 
         $this->clearPending();
@@ -764,6 +769,73 @@ final class PostController
             'existingImages' => Image::findByPostId($post->id),
             'canDeleteImages' => $this->canDeleteImages($user),
         ]);
+    }
+
+    /**
+     * action/status/CSRFトークンの妥当性を検証する（新規投稿・編集で共通）。
+     *
+     * @return array{action: string, status: string, valid: bool}
+     */
+    private function parseActionAndStatus(): array
+    {
+        $action = (string) ($_POST['action'] ?? '');
+        $status = $action === 'publish' ? 'published' : 'draft';
+        $valid = in_array($action, ['draft', 'publish'], true) && Csrf::verify($_POST['csrf_token'] ?? null);
+
+        return ['action' => $action, 'status' => $status, 'valid' => $valid];
+    }
+
+    /**
+     * タイトルのバリデーション（新規投稿・編集で共通）。
+     *
+     * @return array<int, string>
+     */
+    private function validateTitle(string $title): array
+    {
+        if ($title === '') {
+            return ['タイトルを入力してください。'];
+        }
+        if (mb_strlen($title) > 200) {
+            return ['タイトルは200文字以内で入力してください。'];
+        }
+
+        return [];
+    }
+
+    /**
+     * ロゴ調整フォーム（FR-19、JSにより画像ごとに動的生成）の値を$_POSTから取り出す
+     * （新規投稿・編集で共通）。アップロードファイルと同じ並び順であることを前提とする。
+     *
+     * @return array<int, array{pos_x: float, pos_y: float, scale: float, opacity: float}>
+     */
+    private function buildLogoSettingsFromRequest(int $count): array
+    {
+        return ImageUploader::parseLogoSettings(
+            (array) ($_POST['logo_pos_x'] ?? []),
+            (array) ($_POST['logo_pos_y'] ?? []),
+            (array) ($_POST['logo_scale'] ?? []),
+            (array) ($_POST['logo_opacity'] ?? []),
+            $count
+        );
+    }
+
+    /**
+     * タグ関連フォーム値を検証・整形する（新規投稿・編集で共通）。
+     *
+     * @param array<int, int> $requestedTagIds
+     * @return array{selectedTagIds: array<int, int>, newTagNames: array<int, string>,
+     *     existingTags: array<int, array{id: int, name: string}>}
+     */
+    private function resolveTagForm(array $requestedTagIds, string $newTagsRaw): array
+    {
+        $existingTags = Tag::findAll();
+        $existingTagIds = array_column($existingTags, 'id');
+
+        return [
+            'selectedTagIds' => array_values(array_intersect($requestedTagIds, $existingTagIds)),
+            'newTagNames' => $this->parseTagNames($newTagsRaw),
+            'existingTags' => $existingTags,
+        ];
     }
 
     /**

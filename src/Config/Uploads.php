@@ -12,6 +12,11 @@ final class Uploads
     // 1投稿あたりの最大枚数（要件定義書に明記はないが、乱用防止のための技術的な上限）。
     public const MAX_FILE_COUNT = 10;
 
+    // 画像1枚あたりの縦横のピクセル数上限。ファイルサイズ（バイト数）の上限だけでは、
+    // 圧縮率が非常に高い（単色に近い等の）画像で巨大なピクセル数をすり抜けてしまい、
+    // GDでのデコード時に本番サーバー（メモリ1GB）でOOM Killを起こす実害を確認済みのため設ける。
+    public const MAX_IMAGE_DIMENSION_PX = 6000;
+
     // 許可する画像形式（拡張子とMIMEタイプの対応）。
     public const ALLOWED_EXTENSIONS = [
         'jpg' => 'image/jpeg',

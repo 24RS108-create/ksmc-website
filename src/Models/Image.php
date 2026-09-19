@@ -68,6 +68,42 @@ final class Image
     }
 
     /**
+     * 一覧表示（ギャラリー・ブログ・会員ページ等）でのN+1クエリ回避用。
+     * 投稿ごとにfindByPostId()を呼ぶ代わりに、各投稿のサムネイル（sort_order最小の1枚）の
+     * display_pathだけをまとめて1回のクエリで取得する。
+     *
+     * @param array<int, int> $postIds
+     * @return array<int, string> post_idをキーにしたdisplay_path
+     */
+    public static function findThumbnailsByPostIds(array $postIds): array
+    {
+        $postIds = array_values(array_unique(array_filter($postIds, static fn (int $id): bool => $id > 0)));
+        if (empty($postIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($postIds), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT post_id, display_path FROM images
+             WHERE post_id IN ({$placeholders})
+             ORDER BY post_id ASC, sort_order ASC"
+        );
+        $stmt->execute($postIds);
+
+        $thumbnails = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $postId = (int) $row['post_id'];
+            // post_id, sort_order の順に並んでいるため、各post_idで最初に現れた行が
+            // sort_order最小（＝サムネイルにすべき画像）になる。
+            if (!isset($thumbnails[$postId])) {
+                $thumbnails[$postId] = $row['display_path'];
+            }
+        }
+
+        return $thumbnails;
+    }
+
+    /**
      * 次に追加する画像の表示順（既存の最大値+1）を返す。
      */
     public static function nextSortOrder(int $postId): int

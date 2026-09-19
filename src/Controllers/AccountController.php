@@ -208,9 +208,11 @@ final class AccountController
         $target = $this->findManagedTargetOrRedirect($admin, (string) ($_POST['login_id'] ?? ''));
         $action = (string) ($_POST['pr_action'] ?? '');
 
+        // lock()/delete()と同様、CSRF失敗時は無言リダイレクトにせず、一覧画面にエラーを表示する
+        // （確認画面を持たないこの操作特有の無反応感を避けるため）。
         if (!Csrf::verify($_POST['csrf_token'] ?? null)) {
-            header('Location: /account_manage.php');
-            exit;
+            $this->renderManage($admin, null, '不正なリクエストです。もう一度お試しください。');
+            return;
         }
 
         if ($action === 'grant' && $target->role === 'member') {
@@ -220,8 +222,8 @@ final class AccountController
             $target->updateRole('member');
             $notice = "「{$target->loginId}」の広報担当を解除しました。";
         } else {
-            header('Location: /account_manage.php');
-            exit;
+            $this->renderManage($admin, null, '不正な操作です。もう一度お試しください。');
+            return;
         }
 
         $this->renderManage($admin, $notice);
@@ -278,7 +280,9 @@ final class AccountController
     {
         $target = $this->findManagedTargetOrRedirect($admin, $loginId);
 
-        if ($target->role === 'admin') {
+        // 既にadminのアカウントへの委譲は不可（既存チェック）。休止会員（退会・卒業済み）への委譲も
+        // 4ロールモデル・FR-11の想定に反するため、あわせて除外する。
+        if ($target->role === 'admin' || $target->role === 'inactive') {
             header('Location: /account_manage.php');
             exit;
         }

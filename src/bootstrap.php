@@ -36,6 +36,18 @@ if (is_file($envFile)) {
 }
 
 if (session_status() === PHP_SESSION_NONE) {
+    // セッションCookieのセキュリティ属性を明示する（NFR-02）。httponlyでJS経由の窃取を防ぎ、
+    // samesite=LaxでクロスサイトなPOSTへの送出を抑止する。secureはHTTPS配信時のみ有効にする
+    // （HTTP環境では常にsecure=trueだとブラウザがCookieを送信できなくなるため）。
+    $isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => $isHttps,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
     session_start();
 }
 

@@ -132,6 +132,12 @@ final class GalleryController
         $id = (int) ($_GET['id'] ?? 0);
         $member = $id > 0 ? User::findById($id) : null;
 
+        // FR-28: 退会・削除済み会員（=休止会員ロールに変更済み、またはアカウント自体が削除済み）は
+        // 「見つかりません」ページを表示する。
+        if ($member !== null && $member->role === 'inactive') {
+            $member = null;
+        }
+
         if ($member === null) {
             View::render('member_not_found', ['title' => '会員が見つかりません']);
             return;
@@ -165,21 +171,30 @@ final class GalleryController
     }
 
     /**
+     * 投稿ごとにUser::findById()・Image::findByPostId()を呼ぶN+1クエリを避けるため、
+     * 必要なユーザー・サムネイルをそれぞれ1回のクエリでまとめて取得する。
+     *
      * @param array<int, Post> $posts
      * @return array<int, array{post: Post, authorId: ?int, authorName: string, thumbnail: ?string}>
      */
     private function decorate(array $posts): array
     {
+        if (empty($posts)) {
+            return [];
+        }
+
+        $usersById = User::findByIds(array_map(static fn (Post $post): int => $post->userId, $posts));
+        $thumbnailsByPostId = Image::findThumbnailsByPostIds(array_map(static fn (Post $post): int => $post->id, $posts));
+
         $decorated = [];
         foreach ($posts as $post) {
-            $author = User::findById($post->userId);
-            $images = Image::findByPostId($post->id);
+            $author = $usersById[$post->userId] ?? null;
 
             $decorated[] = [
                 'post' => $post,
                 'authorId' => $author?->id,
                 'authorName' => $author?->displayName ?? '(退会した会員)',
-                'thumbnail' => $images[0]['display_path'] ?? null,
+                'thumbnail' => $thumbnailsByPostId[$post->id] ?? null,
             ];
         }
 
