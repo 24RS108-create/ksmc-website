@@ -392,6 +392,12 @@ a.status-badge:hover {
     margin: 8px 0;
 }
 
+.profile-note {
+    white-space: pre-line;
+    margin: 8px 0 24px;
+    line-height: 1.6;
+}
+
 .post-card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));

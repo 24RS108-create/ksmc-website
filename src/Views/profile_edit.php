@@ -33,9 +33,9 @@ use App\Core\View;
     </div>
 
     <div class="form-row">
-        <label for="profile_note">メモ（任意・サイト上には公開されません）</label>
+        <label for="profile_note">プロフィール（任意・会員ページに公開されます）</label>
         <textarea id="profile_note" name="profile_note" maxlength="2000"><?= View::e($profileNote) ?></textarea>
-        <p class="hint">学年・専攻など、公開したくない情報はここに書いても外部には表示されません。</p>
+        <p class="hint">入力した内容はあなたの会員ページ（訪問者もログインなしで閲覧可能）にそのまま表示されます。学年・専攻など公開したくない個人情報は入力しないでください。</p>
     </div>
 
     <div class="form-actions">

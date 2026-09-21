@@ -18,7 +18,7 @@ erDiagram
     string password_hash
     boolean must_change_password "初回ログイン時の変更強制フラグ"
     string display_name "必須。プロフィールの唯一の公開項目"
-    string profile_note "任意入力。非公開項目(学年専攻等含む)"
+    string profile_note "任意入力。会員ページに公開(v0.10で非公開から変更)"
     enum role "member / pr / admin / inactive"
     int invited_by FK "招待した管理者のuser_id"
     datetime created_at
@@ -80,7 +80,7 @@ erDiagram
 | password_hash | VARCHAR(255) | NOT NULL | bcrypt等でハッシュ化（NFR-02） |
 | must_change_password | BOOLEAN | NOT NULL, DEFAULT TRUE | 初回ログイン時の変更強制。要決定事項(11.2-2)に対応する仮設計 |
 | display_name | VARCHAR(100) | NOT NULL | プロフィールの必須項目・唯一の公開項目（FR-03） |
-| profile_note | TEXT | NULL可 | 学年・専攻等の任意入力項目。**サイト上では非公開**として扱う（FR-03） |
+| profile_note | TEXT | NULL可 | 任意入力のプロフィール。**会員ページ上で公開**する（FR-03、FR-28。v0.10にて非公開から変更） |
 | role | ENUM('member','pr','admin','inactive') | NOT NULL, DEFAULT 'member' | 会員／広報担当／管理者／休止会員（FR-09） |
 | invited_by | INT | FK → users.id, NULL可 | 招待した管理者。初代管理者はNULL |
 | created_at | DATETIME | NOT NULL | |

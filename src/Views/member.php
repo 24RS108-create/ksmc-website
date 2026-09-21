@@ -3,8 +3,8 @@
 use App\Core\View;
 
 /**
- * 会員ページ（FR-28）。表示名と公開済み投稿一覧のみを表示する。プロフィールメモは非公開項目
- * のためここには表示しない（profile_edit.phpの「サイト上には公開されません」に対応）。
+ * 会員ページ（FR-28）。表示名・任意入力のプロフィール（profile_note）・公開済み投稿一覧を表示する。
+ * プロフィールは任意入力かつ公開項目のため、未入力の会員には表示しない（FR-03）。
  *
  * @var \App\Models\User $member
  * @var array<int, array{post: \App\Models\Post, authorId: ?int, authorName: string, thumbnail: ?string}> $posts
@@ -16,6 +16,10 @@ use App\Core\View;
 <p><a href="/gallery.php">作品ギャラリーへ戻る</a></p>
 
 <h1><?= View::e($member->displayName) ?></h1>
+
+<?php if (!empty($member->profileNote)): ?>
+<p class="profile-note"><?= View::e($member->profileNote) ?></p>
+<?php endif; ?>
 
 <?php if (empty($posts)): ?>
 <p class="hint">公開済みの作品はまだありません。</p>
