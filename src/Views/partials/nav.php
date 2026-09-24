@@ -20,19 +20,22 @@ $navUser = Auth::user();
         <?php if ($navUser === null): ?>
         <a href="/login.php">ログイン</a>
         <?php else: ?>
-        <a href="/my_posts.php">自分の投稿</a>
-        <?php if ($navUser->role !== 'inactive'): ?>
-        <a href="/post_create.php">投稿する</a>
-        <a href="/profile_edit.php">プロフィール</a>
-        <?php endif; ?>
-        <a href="/password_edit.php">パスワード再設定</a>
-        <?php if ($navUser->role === 'admin'): ?>
-        <a href="/account_create.php">アカウント発行</a>
-        <a href="/account_manage.php">アカウント管理</a>
-        <a href="/tag_manage.php">タグ管理</a>
-        <a href="/contact_manage.php">お問い合わせ管理</a>
-        <?php endif; ?>
-        <a href="/logout.php">ログアウト</a>
+        <details class="sidebar-account-menu">
+            <summary>アカウントメニュー</summary>
+            <a href="/my_posts.php">自分の投稿</a>
+            <?php if ($navUser->role !== 'inactive'): ?>
+            <a href="/post_create.php">投稿する</a>
+            <a href="/profile_edit.php">プロフィール</a>
+            <?php endif; ?>
+            <a href="/password_edit.php">パスワード再設定</a>
+            <?php if ($navUser->role === 'admin'): ?>
+            <a href="/account_create.php">アカウント発行</a>
+            <a href="/account_manage.php">アカウント管理</a>
+            <a href="/tag_manage.php">タグ管理</a>
+            <a href="/contact_manage.php">お問い合わせ管理</a>
+            <?php endif; ?>
+            <a href="/logout.php">ログアウト</a>
+        </details>
         <?php endif; ?>
     </nav>
 </aside>

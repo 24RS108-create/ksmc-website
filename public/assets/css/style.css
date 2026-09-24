@@ -77,6 +77,44 @@ a {
     background-color: rgba(0, 0, 0, 0.12);
 }
 
+/* ログイン時のメニューをプルダウン化（会員ページのプロフィール折りたたみと同じdetails/summary方式）。
+   .sidebar-nav a はdetails内のaにも及ぶため、リンク自体の見た目（padding・色・区切り線）は
+   共通スタイルを流用し、ここではsummaryの見た目と開閉アイコンのみを個別に定義する。 */
+.sidebar-account-menu summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    color: var(--color-sidebar-text);
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    font-size: 0.95em;
+    list-style: none;
+}
+
+.sidebar-account-menu summary::-webkit-details-marker {
+    display: none;
+}
+
+.sidebar-account-menu summary::after {
+    content: "▾";
+    font-size: 0.8em;
+    transition: transform 0.15s ease;
+}
+
+.sidebar-account-menu[open] summary::after {
+    transform: rotate(180deg);
+}
+
+.sidebar-account-menu summary:hover {
+    background-color: rgba(0, 0, 0, 0.12);
+}
+
+.sidebar-account-menu a {
+    padding-left: 32px;
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
 .content {
     flex: 1;
     /* フレックスアイテムの既定のmin-width:autoを解除し、中身（折り返せない長い文字列）に
