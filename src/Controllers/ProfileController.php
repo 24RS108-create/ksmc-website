@@ -39,8 +39,8 @@ final class ProfileController
             $errors[] = '表示名を入力してください。';
         } elseif (mb_strlen($displayName) > 100) {
             $errors[] = '表示名は100文字以内で入力してください。';
-        } elseif ($profileNote !== null && mb_strlen($profileNote) > 2000) {
-            $errors[] = 'メモは2000文字以内で入力してください。';
+        } elseif ($profileNote !== null && mb_strlen($profileNote) > 500) {
+            $errors[] = 'プロフィールは500文字以内で入力してください。';
         }
 
         if (empty($errors)) {

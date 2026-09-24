@@ -123,9 +123,10 @@ final class GalleryController
         ]);
     }
 
+    private const PROFILE_NOTE_FOLD_LINE_THRESHOLD = 5;
+
     /**
-     * 会員ページ（FR-28）。指定した会員の表示名と公開済み投稿一覧を表示する。
-     * プロフィールメモ（profile_note）は非公開項目のため表示しない。
+     * 会員ページ（FR-28）。指定した会員の表示名・プロフィール（profile_note）・公開済み投稿一覧を表示する。
      */
     public function showMember(): void
     {
@@ -148,10 +149,16 @@ final class GalleryController
             Post::countPublishedByUserId($member->id)
         );
 
+        // プロフィールが5行以上に及ぶ場合は折りたたんで表示する（ページが縦に間延びするのを防ぐため）。
+        $profileNoteLineCount = $member->profileNote !== null
+            ? substr_count($member->profileNote, "\n") + 1
+            : 0;
+
         View::render('member', [
             'title' => $member->displayName,
             'wide' => true,
             'member' => $member,
+            'foldProfileNote' => $profileNoteLineCount >= self::PROFILE_NOTE_FOLD_LINE_THRESHOLD,
             'posts' => $this->decorate(Post::findPublishedByUserId($member->id, $pagination['perPage'], $pagination['offset'])),
             'pagination' => $pagination,
             'pageBaseUrl' => '/member.php',

@@ -392,10 +392,26 @@ a.status-badge:hover {
     margin: 8px 0;
 }
 
+.profile-note-section {
+    margin: 8px 0 24px;
+    padding-bottom: 16px;
+    border-bottom: 3px solid var(--color-brand);
+}
+
 .profile-note {
     white-space: pre-line;
-    margin: 8px 0 24px;
     line-height: 1.6;
+    margin: 0;
+}
+
+.profile-note-fold summary {
+    cursor: pointer;
+    color: var(--color-brand);
+    font-size: 0.9em;
+}
+
+.profile-note-fold[open] summary {
+    margin-bottom: 8px;
 }
 
 .post-card-grid {
