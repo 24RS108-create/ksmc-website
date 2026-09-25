@@ -23,7 +23,10 @@ BACKUP_UPLOADS="$HOME/ksmc_uploads_${DATE}.tar.gz"
 
 # --single-transactionによりInnoDBの整合性を保ちながらロックなしでダンプできる。
 # ksmc_appユーザーはLOCK TABLES権限を持たないため、このオプションが必須。
-mysqldump -u "$DB_USER" -p --single-transaction "$DB_NAME" > "$BACKUP_SQL"
+# --no-tablespacesを付けないと、テーブルスペース情報の取得にPROCESS権限を要求され
+# 警告が出る（このアプリでは明示的なテーブルスペースを使わないため実害はないが、
+# バックアップ専用に権限を広げたくないため、オプション側で回避する）。
+mysqldump -u "$DB_USER" -p --single-transaction --no-tablespaces "$DB_NAME" > "$BACKUP_SQL"
 
 tar -czf "$BACKUP_UPLOADS" -C "$UPLOADS_DIR" uploads
 
