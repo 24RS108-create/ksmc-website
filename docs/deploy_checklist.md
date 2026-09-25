@@ -142,8 +142,9 @@ VirtualHost・DocumentRoot・アップロード権限は4.5章で構築済みの
 
 ## 8. バックアップ体制の初期化（NFR-06）
 
-- [ ] 初回のDB・アップロード画像のエクスポート手順を確立し、実施する
-- [ ] `docs/admin_handover_procedure.md`のバックアップ引き継ぎ欄に、初回バックアップの取得日・保管場所を記録する
+- [x] DB・アップロード画像のエクスポート手順を確立：`deploy/backup.sh`を新設し、`docs/admin_handover_procedure.md`第5章に手順を明文化（cronには登録せず、手動実行のみ）
+- [ ] 上記手順で初回バックアップを実際に取得する
+- [ ] `docs/admin_handover_procedure.md`第5.3節の記録表に、初回バックアップの取得日・保管場所を記入する
 
 ## 9. 引き継ぎドキュメントの最終確認
 
