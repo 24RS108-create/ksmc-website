@@ -5,10 +5,11 @@ use App\Core\Auth;
 $navUser = Auth::user();
 ?>
 <aside class="sidebar">
+    <button type="button" class="mobile-nav-toggle" aria-expanded="false" aria-controls="sidebar-nav-list" aria-label="メニュー">&#9776;</button>
     <a href="/" class="sidebar-logo">
         <img src="/assets/images/ksmc-logo-white.png" alt="KSMC KSU MODEL CLUB">
     </a>
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" id="sidebar-nav-list">
         <a href="/">トップ</a>
         <a href="/about.php">サークルについて</a>
         <a href="/gallery.php">模型ギャラリー</a>

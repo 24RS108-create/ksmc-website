@@ -44,6 +44,23 @@ a {
     background-color: var(--color-sidebar);
 }
 
+/* スマホ幅でのみ表示するハンバーガーボタン（画面左上に固定表示）。
+   デスクトップ幅では常時非表示（@media (max-width: 700px)で表示に切り替える）。 */
+.mobile-nav-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 6px;
+    background-color: var(--color-sidebar);
+    color: var(--color-sidebar-text);
+    font-size: 1.4em;
+    line-height: 1;
+    cursor: pointer;
+}
+
 .sidebar-logo {
     display: flex;
     align-items: center;
@@ -572,18 +589,48 @@ a.status-badge:hover {
         flex-direction: column;
     }
 
+    /* サイドバー全体を通常のレイアウトから外し、画面左上に固定したハンバーガーボタン＋
+       その直下に開くドロップダウンパネルに変える（スクロールにも追従する）。
+       開閉はmobile-nav.jsが.sidebarへ付け外しする.nav-openクラスで行う。 */
     .sidebar {
-        width: 100%;
-        flex: 0 0 auto;
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        width: auto;
+        flex: none;
+        z-index: 100;
+        background-color: transparent;
+    }
+
+    .mobile-nav-toggle {
+        display: flex;
+    }
+
+    .sidebar-logo {
+        display: none;
     }
 
     .sidebar-nav {
-        flex-direction: row;
-        flex-wrap: wrap;
+        display: none;
+        flex-direction: column;
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        min-width: 220px;
+        max-height: calc(100vh - 80px);
+        overflow-y: auto;
+        background-color: var(--color-sidebar);
+        border-radius: 6px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    .sidebar.nav-open .sidebar-nav {
+        display: flex;
     }
 
     .content {
         margin: 16px;
+        margin-top: 64px;
         padding: 16px;
         max-width: none;
     }
