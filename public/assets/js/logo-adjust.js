@@ -35,7 +35,7 @@
      * スライダー1行を作る。$name が空なら送信対象にしない（位置はhidden inputで送るため）。
      * 返り値の sync() を呼ぶと、state の現在値でスライダーの表示を更新する。
      */
-    function createRangeRow(labelText, name, key, state, stateKey, onChange) {
+    function createRangeRow(labelText, name, key, state, stateKey, onChange, minOverride) {
         var row = document.createElement('div');
         row.className = 'logo-adjust-row';
 
@@ -47,7 +47,7 @@
         if (name) {
             range.name = name;
         }
-        range.min = String(RANGES[key].min);
+        range.min = String(minOverride !== undefined ? minOverride : RANGES[key].min);
         range.max = String(RANGES[key].max);
         range.value = String(state[stateKey]);
 
@@ -67,20 +67,33 @@
 
         return {
             row: row,
+            range: range,
             sync: function () {
                 var rounded = String(Math.round(state[stateKey]));
                 range.value = rounded;
                 valueOut.textContent = rounded;
+            },
+            /**
+             * スライダーの下限を後から変更する（投稿区分の切り替え時に使用）。
+             * 現在値が新しい下限を下回っている場合は下限に引き上げる。
+             */
+            applyMin: function (newMin) {
+                range.min = String(newMin);
+                if (state[stateKey] < newMin) {
+                    state[stateKey] = newMin;
+                }
+                this.sync();
+                onChange();
             }
         };
     }
 
-    function buildBlock(file, number) {
+    function buildBlock(file, number, opacityMin) {
         var state = {
             posX: DEFAULTS.posX,
             posY: DEFAULTS.posY,
             scale: DEFAULTS.scale,
-            opacity: DEFAULTS.opacity
+            opacity: Math.max(DEFAULTS.opacity, opacityMin)
         };
 
         var block = document.createElement('div');
@@ -180,7 +193,7 @@
         var posXRow = createRangeRow('ロゴの位置（左右）', null, 'posX', state, 'posX', redraw);
         var posYRow = createRangeRow('ロゴの位置（上下）', null, 'posY', state, 'posY', redraw);
         var scaleRow = createRangeRow('ロゴの大きさ', 'logo_scale[]', 'scale', state, 'scale', redraw);
-        var opacityRow = createRangeRow('ロゴの濃さ（不透明度）', 'logo_opacity[]', 'opacity', state, 'opacity', redraw);
+        var opacityRow = createRangeRow('ロゴの濃さ（不透明度）', 'logo_opacity[]', 'opacity', state, 'opacity', redraw, opacityMin);
         syncFns.push(posXRow.sync, posYRow.sync, scaleRow.sync, opacityRow.sync);
 
         block.appendChild(posXRow.row);
@@ -229,7 +242,7 @@
             canvas.addEventListener('pointercancel', endDrag);
         }
 
-        return block;
+        return { element: block, opacityRow: opacityRow };
     }
 
     function init(input) {
@@ -246,8 +259,33 @@
         // 既存画像の枚数分だけ繰り上げる（data-image-number-offset属性で指定）。
         var numberOffset = parseInt(input.getAttribute('data-image-number-offset') || '0', 10) || 0;
 
+        // 個人の作品記事（post_type='individual'）における透過度の下限（%）。公式ブログは0%まで許容する。
+        // 具体的な数値はサーバー側（App\Config\Uploads::LOGO_MIN_OPACITY_INDIVIDUAL）と揃える必要が
+        // あるため、ハードコードせずdata属性経由でPHPから受け取る。
+        var minOpacityIndividual = parseInt(input.getAttribute('data-opacity-min-individual') || '0', 10) || 0;
+
+        // 投稿区分の切り替えラジオボタン（広報担当・管理者の新規投稿フォームのみ存在する）。
+        // 存在しない画面（一般会員の新規投稿・編集画面）では、data-post-type属性の固定値を使う。
+        var postTypeRadios = document.querySelectorAll('input[name="post_type"]');
+
+        function currentPostType() {
+            for (var i = 0; i < postTypeRadios.length; i++) {
+                if (postTypeRadios[i].checked) {
+                    return postTypeRadios[i].value;
+                }
+            }
+            return input.getAttribute('data-post-type') || 'individual';
+        }
+
+        function currentOpacityMin() {
+            return currentPostType() === 'official_blog' ? 0 : minOpacityIndividual;
+        }
+
+        var activeOpacityRows = [];
+
         input.addEventListener('change', function () {
             container.innerHTML = '';
+            activeOpacityRows = [];
 
             if (!input.files || input.files.length === 0) {
                 return;
@@ -258,10 +296,22 @@
             heading.textContent = 'それぞれの画像について、実際の画像上でロゴの位置・大きさ・濃さを調整できます（未調整の場合は既定値を使用します）。';
             container.appendChild(heading);
 
+            var opacityMin = currentOpacityMin();
             for (var i = 0; i < input.files.length; i++) {
-                container.appendChild(buildBlock(input.files[i], numberOffset + i + 1));
+                var built = buildBlock(input.files[i], numberOffset + i + 1, opacityMin);
+                container.appendChild(built.element);
+                activeOpacityRows.push(built.opacityRow);
             }
         });
+
+        for (var r = 0; r < postTypeRadios.length; r++) {
+            postTypeRadios[r].addEventListener('change', function () {
+                var newMin = currentOpacityMin();
+                for (var j = 0; j < activeOpacityRows.length; j++) {
+                    activeOpacityRows[j].applyMin(newMin);
+                }
+            });
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function () {

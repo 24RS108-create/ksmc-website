@@ -232,9 +232,11 @@ final class ImageUploader
      * @param array<int, mixed> $posY
      * @param array<int, mixed> $scale
      * @param array<int, mixed> $opacity
+     * @param string $postType 'individual'|'official_blog'。透過度の下限が投稿種別で異なるため必要
+     *     （個人の作品記事はロゴが実質見えなくなる0%を禁止し20%を下限とする。公式ブログは0%まで許容）。
      * @return array<int, array{pos_x: float, pos_y: float, scale: float, opacity: float}>
      */
-    public static function parseLogoSettings(array $posX, array $posY, array $scale, array $opacity, int $count): array
+    public static function parseLogoSettings(array $posX, array $posY, array $scale, array $opacity, int $count, string $postType): array
     {
         $settings = [];
 
@@ -243,7 +245,7 @@ final class ImageUploader
                 'pos_x' => self::clampPercent($posX[$i] ?? null, Uploads::LOGO_DEFAULT_POS_X),
                 'pos_y' => self::clampPercent($posY[$i] ?? null, Uploads::LOGO_DEFAULT_POS_Y),
                 'scale' => self::clampScale($scale[$i] ?? null),
-                'opacity' => self::clampPercent($opacity[$i] ?? null, Uploads::LOGO_DEFAULT_OPACITY),
+                'opacity' => self::clampOpacity($opacity[$i] ?? null, $postType),
             ];
         }
 
@@ -266,6 +268,17 @@ final class ImageUploader
         }
 
         return max(Uploads::LOGO_MIN_SCALE, min(Uploads::LOGO_MAX_SCALE, (float) $value));
+    }
+
+    private static function clampOpacity(mixed $value, string $postType): float
+    {
+        if (!is_numeric($value)) {
+            return Uploads::LOGO_DEFAULT_OPACITY;
+        }
+
+        $min = $postType === 'official_blog' ? 0.0 : Uploads::LOGO_MIN_OPACITY_INDIVIDUAL;
+
+        return max($min, min(100.0, (float) $value));
     }
 
     /**

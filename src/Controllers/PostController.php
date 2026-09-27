@@ -79,7 +79,7 @@ final class PostController
         $errors = array_merge($errors, $uploadResult['errors']);
         $errors = array_merge($errors, ImageUploader::checkAggregateLimits($uploadResult['files']));
 
-        $logoSettings = $this->buildLogoSettingsFromRequest(count($uploadResult['files']));
+        $logoSettings = $this->buildLogoSettingsFromRequest(count($uploadResult['files']), $postType);
 
         // 公開時のみ本文・画像を必須とする。下書きは未完成のまま保存できる（FR-05）。
         if ($status === 'published') {
@@ -342,7 +342,7 @@ final class PostController
             ImageUploader::checkAggregateLimits($uploadResult['files'], $remainingExistingCount, $remainingExistingBytes)
         );
 
-        $logoSettings = $this->buildLogoSettingsFromRequest(count($uploadResult['files']));
+        $logoSettings = $this->buildLogoSettingsFromRequest(count($uploadResult['files']), $post->postType);
 
         // 公開時のみ本文・画像を必須とする（FR-05）。削除後に残る画像があれば新規追加は不要。
         if ($status === 'published') {
@@ -805,17 +805,19 @@ final class PostController
     /**
      * ロゴ調整フォーム（FR-19、JSにより画像ごとに動的生成）の値を$_POSTから取り出す
      * （新規投稿・編集で共通）。アップロードファイルと同じ並び順であることを前提とする。
+     * $postTypeにより透過度の下限が変わる（個人の作品記事は20%下限、公式ブログは0%まで許容）。
      *
      * @return array<int, array{pos_x: float, pos_y: float, scale: float, opacity: float}>
      */
-    private function buildLogoSettingsFromRequest(int $count): array
+    private function buildLogoSettingsFromRequest(int $count, string $postType): array
     {
         return ImageUploader::parseLogoSettings(
             (array) ($_POST['logo_pos_x'] ?? []),
             (array) ($_POST['logo_pos_y'] ?? []),
             (array) ($_POST['logo_scale'] ?? []),
             (array) ($_POST['logo_opacity'] ?? []),
-            $count
+            $count,
+            $postType
         );
     }
 

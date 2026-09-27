@@ -44,4 +44,8 @@ final class Uploads
     // ロゴが小さくなりすぎて視認できなくなるのを防ぐため、10%を下限とする。
     public const LOGO_MIN_SCALE = 10.0;
     public const LOGO_MAX_SCALE = 50.0;
+
+    // 個人の作品記事（post_type='individual'）では、ロゴが実質見えなくなる透過度0%を防ぐため
+    // 20%を下限とする。公式ブログ（official_blog）はこの下限を適用せず0%まで許容する。
+    public const LOGO_MIN_OPACITY_INDIVIDUAL = 20.0;
 }
