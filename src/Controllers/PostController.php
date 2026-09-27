@@ -8,6 +8,7 @@ use App\Config\Database;
 use App\Core\Auth;
 use App\Core\Csrf;
 use App\Core\ImageUploader;
+use App\Core\Paginator;
 use App\Core\PostBodyRenderer;
 use App\Core\View;
 use App\Models\Image;
@@ -264,14 +265,38 @@ final class PostController
         $this->renderForm([], $notice, '', '', '', [], Tag::findAll(), $user, 'individual');
     }
 
+    // 自分の投稿一覧（一覧行としての表示、カード一覧のFR-29とは別に、
+    // 20行を超える場合にページ分割する）。
+    private const MY_POSTS_PER_PAGE = 20;
+
     public function showMyPosts(): void
     {
         $user = Auth::requireLogin();
 
+        $pagination = Paginator::resolve(
+            $this->requestedPage(),
+            Post::countByUserId($user->id),
+            self::MY_POSTS_PER_PAGE
+        );
+
         View::render('my_posts', [
             'title' => '自分の投稿',
-            'posts' => Post::findByUserId($user->id),
+            'posts' => Post::findByUserId($user->id, $pagination['perPage'], $pagination['offset']),
+            'pagination' => $pagination,
+            'pageBaseUrl' => '/my_posts.php',
+            'extraQuery' => [],
         ]);
+    }
+
+    /**
+     * クエリパラメータpageを読み取る。不正な値（数値でない・0以下等）は1として扱う
+     * （Paginator::resolve()側でも範囲チェックするため、ここでは大まかな検証のみ）。
+     */
+    private function requestedPage(): int
+    {
+        $page = (int) ($_GET['page'] ?? 1);
+
+        return $page > 0 ? $page : 1;
     }
 
     public function showEdit(): void

@@ -80,11 +80,19 @@ final class Post
     /**
      * @return array<int, self>
      */
-    public static function findByUserId(int $userId): array
+    /**
+     * $limitを指定すると、自分の投稿一覧（FR-06、20行を超える場合にページ分割）向けに
+     * LIMIT/OFFSETを付ける。省略時は全件返す（AccountController::での退会処理等、
+     * 全件を対象とする既存の呼び出しとの後方互換のため）。
+     */
+    public static function findByUserId(int $userId, ?int $limit = null, int $offset = 0): array
     {
-        $stmt = Database::connection()->prepare(
-            'SELECT * FROM posts WHERE user_id = :user_id ORDER BY created_at DESC'
-        );
+        $sql = 'SELECT * FROM posts WHERE user_id = :user_id ORDER BY created_at DESC';
+        if ($limit !== null) {
+            $sql .= ' LIMIT ' . max(0, $limit) . ' OFFSET ' . max(0, $offset);
+        }
+
+        $stmt = Database::connection()->prepare($sql);
         $stmt->execute(['user_id' => $userId]);
 
         $posts = [];
@@ -93,6 +101,19 @@ final class Post
         }
 
         return $posts;
+    }
+
+    /**
+     * ページ分割用の総件数取得。findByUserId()と対になる。
+     */
+    public static function countByUserId(int $userId): int
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT COUNT(*) FROM posts WHERE user_id = :user_id'
+        );
+        $stmt->execute(['user_id' => $userId]);
+
+        return (int) $stmt->fetchColumn();
     }
 
     /**

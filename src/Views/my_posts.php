@@ -5,6 +5,9 @@ use App\Models\Post;
 
 /**
  * @var array<int, Post> $posts
+ * @var array{page: int, totalPages: int, offset: int, perPage: int, totalCount: int} $pagination
+ * @var string $pageBaseUrl
+ * @var array<string, mixed> $extraQuery
  */
 ?>
 <h1>自分の投稿</h1>
@@ -31,4 +34,5 @@ use App\Models\Post;
     </li>
     <?php endforeach; ?>
 </ul>
+<?php include __DIR__ . '/partials/pagination.php'; ?>
 <?php endif; ?>
