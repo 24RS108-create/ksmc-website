@@ -584,6 +584,22 @@ a.status-badge:hover {
 
     .content {
         margin: 16px;
+        padding: 16px;
         max-width: none;
+    }
+
+    /* カード一覧（作品ギャラリー・公式ブログ・タグ絞り込み・会員ページ）はスマホ幅では
+       auto-fillだと1列になり縦に間延びするため、2列固定に切り替えてカードを縮小する。 */
+    .post-card-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .post-card-title {
+        font-size: 0.9em;
+    }
+
+    .post-card-meta {
+        font-size: 0.75em;
     }
 }
