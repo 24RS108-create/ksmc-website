@@ -184,6 +184,29 @@ final class Tag
     }
 
     /**
+     * 削除可否判定用。紐づく投稿数（下書き含む）を返す。
+     */
+    public static function postCount(int $id): int
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT COUNT(*) FROM post_tags WHERE tag_id = :tag_id'
+        );
+        $stmt->execute(['tag_id' => $id]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * タグの単独削除（FR-17）。投稿に紐づいていないタグのみを対象とする想定で、
+     * 呼び出し側（コントローラー）で postCount() による事前チェックを行うこと。
+     */
+    public static function delete(int $id): void
+    {
+        $stmt = Database::connection()->prepare('DELETE FROM tags WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+    }
+
+    /**
      * 表記ゆれの統合（FR-17）。$sourceIds に紐づく投稿を $targetId へ付け替えたうえで、
      * $sourceIds のタグ自体を削除する（$targetId と同じIDは無視する）。
      *

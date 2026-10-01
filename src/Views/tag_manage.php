@@ -11,7 +11,7 @@ use App\Core\View;
 ?>
 <h1>タグ管理</h1>
 
-<p class="hint">表記ゆれのタグをリネーム、または複数のタグを1つに統合できます（例：「戦車」と「戦車模型」を統合）。</p>
+<p class="hint">表記ゆれのタグをリネーム、複数のタグを1つに統合（例：「戦車」と「戦車模型」を統合）、または投稿に紐づいていないタグを削除できます。</p>
 
 <?php if (!empty($notice)): ?>
 <p class="notice"><?= View::e($notice) ?></p>
@@ -38,6 +38,15 @@ use App\Core\View;
             <input type="text" name="name" value="<?= View::e($tag['name']) ?>" maxlength="50" required>
             <button type="submit" class="button-secondary">名前を変更</button>
         </form>
+        <?php if ($tag['post_count'] === 0): ?>
+        <form method="post" action="/tag_delete.php" class="inline-form">
+            <input type="hidden" name="csrf_token" value="<?= View::e(Csrf::token()) ?>">
+            <input type="hidden" name="tag_id" value="<?= (int) $tag['id'] ?>">
+            <button type="submit" class="button-secondary">削除</button>
+        </form>
+        <?php else: ?>
+        <span class="hint">削除は投稿の紐付けが0件のタグのみ可能です</span>
+        <?php endif; ?>
     </li>
     <?php endforeach; ?>
 </ul>

@@ -11,7 +11,8 @@ use App\Core\View;
 use App\Models\Tag;
 
 /**
- * 管理者によるタグの統合・リネーム機能（FR-17）。表記ゆれ対策。
+ * 管理者によるタグの統合・リネーム・削除機能（FR-17）。表記ゆれ対策。
+ * 削除は投稿に紐づいていないタグのみ対象（紐づきがある場合は統合を利用する）。
  */
 final class TagController
 {
@@ -101,6 +102,31 @@ final class TagController
 
         $count = count($sourceIds);
         $this->renderManage(null, "{$count}件のタグを「{$target['name']}」に統合しました。");
+    }
+
+    public function delete(): void
+    {
+        Auth::requireRole('admin');
+
+        $id = (int) ($_POST['tag_id'] ?? 0);
+
+        if (!Csrf::verify($_POST['csrf_token'] ?? null)) {
+            $this->renderManage('不正なリクエストです。もう一度お試しください。', null);
+            return;
+        }
+
+        $target = $id > 0 ? Tag::findById($id) : null;
+        if ($target === null) {
+            $this->renderManage('対象のタグが見つかりませんでした。', null);
+            return;
+        }
+        if (Tag::postCount($id) > 0) {
+            $this->renderManage('投稿に紐づいているため削除できません。先に統合をご利用ください。', null);
+            return;
+        }
+
+        Tag::delete($id);
+        $this->renderManage(null, "「{$target['name']}」を削除しました。");
     }
 
     private function renderManage(?string $error, ?string $notice): void
