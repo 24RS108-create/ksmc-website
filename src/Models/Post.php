@@ -312,4 +312,49 @@ final class Post
         $stmt = Database::connection()->prepare('DELETE FROM posts WHERE id = :id');
         $stmt->execute(['id' => $id]);
     }
+
+    /**
+     * 管理者向け全投稿管理（FR-06）。全ユーザーの全投稿（下書き含む）を投稿者名付きで返す。
+     * 投稿の外部キーはON DELETE CASCADEのため、存在する投稿には必ず投稿者が存在する前提でJOINする。
+     * $offsetはページ分割用。$limitを指定しない場合は無視される。
+     *
+     * @return array<int, array{id: int, title: string, post_type: string, status: string,
+     *     user_id: int, author_name: string}>
+     */
+    public static function findAllWithAuthor(?int $limit = null, int $offset = 0): array
+    {
+        $sql = 'SELECT p.id, p.title, p.post_type, p.status, p.user_id, u.display_name AS author_name
+                FROM posts p
+                JOIN users u ON u.id = p.user_id
+                ORDER BY p.created_at DESC';
+        if ($limit !== null) {
+            $sql .= ' LIMIT ' . max(0, $limit) . ' OFFSET ' . max(0, $offset);
+        }
+
+        $stmt = Database::connection()->query($sql);
+
+        $rows = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $rows[] = [
+                'id' => (int) $row['id'],
+                'title' => $row['title'],
+                'post_type' => $row['post_type'],
+                'status' => $row['status'],
+                'user_id' => (int) $row['user_id'],
+                'author_name' => $row['author_name'],
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * ページ分割用の総件数取得。findAllWithAuthor()と対になる。
+     */
+    public static function countAll(): int
+    {
+        $stmt = Database::connection()->query('SELECT COUNT(*) FROM posts');
+
+        return (int) $stmt->fetchColumn();
+    }
 }

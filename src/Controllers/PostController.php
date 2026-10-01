@@ -299,6 +299,29 @@ final class PostController
         return $page > 0 ? $page : 1;
     }
 
+    // 管理者向け全投稿管理（FR-06）。マイページ（自分の投稿のみ）とは別に、
+    // 全会員の全投稿（下書き含む）を一覧表示し削除できるようにする。1ページあたり20行。
+    private const ADMIN_POST_LIST_PER_PAGE = 20;
+
+    public function showAdminList(): void
+    {
+        Auth::requireRole('admin');
+
+        $pagination = Paginator::resolve(
+            $this->requestedPage(),
+            Post::countAll(),
+            self::ADMIN_POST_LIST_PER_PAGE
+        );
+
+        View::render('post_admin_list', [
+            'title' => '全投稿管理',
+            'posts' => Post::findAllWithAuthor($pagination['perPage'], $pagination['offset']),
+            'pagination' => $pagination,
+            'pageBaseUrl' => '/post_admin_list.php',
+            'extraQuery' => [],
+        ]);
+    }
+
     public function showEdit(): void
     {
         [$post, $user] = $this->requirePostAccess();
@@ -569,7 +592,7 @@ final class PostController
 
     public function delete(): void
     {
-        [$post] = $this->requirePostAccess();
+        [$post, $user] = $this->requirePostAccess();
 
         if (!Csrf::verify($_POST['csrf_token'] ?? null)) {
             View::render('post_delete_confirm', [
@@ -583,7 +606,12 @@ final class PostController
         Post::delete($post->id);
         ImageUploader::deletePostDirectory($post->id);
 
-        header('Location: /my_posts.php');
+        // 管理者が他会員の投稿を削除した場合は全投稿管理へ、それ以外は自分のマイページへ戻す。
+        $redirectTo = $user->role === 'admin' && $post->userId !== $user->id
+            ? '/post_admin_list.php'
+            : '/my_posts.php';
+
+        header("Location: {$redirectTo}");
         exit;
     }
 

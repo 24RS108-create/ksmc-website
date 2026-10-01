@@ -32,6 +32,7 @@ $navUser = Auth::user();
             <?php if ($navUser->role === 'admin'): ?>
             <a href="/account_create.php">アカウント発行</a>
             <a href="/account_manage.php">アカウント管理</a>
+            <a href="/post_admin_list.php">全投稿管理</a>
             <a href="/tag_manage.php">タグ管理</a>
             <a href="/contact_manage.php">お問い合わせ管理</a>
             <?php endif; ?>
