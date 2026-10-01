@@ -28,25 +28,27 @@ use App\Core\View;
 <?php else: ?>
 
 <h2>リネーム</h2>
-<ul class="post-list">
+<ul class="post-list tag-manage-list">
     <?php foreach ($tags as $tag): ?>
-    <li class="post-list-item">
-        <span class="post-list-title">#<?= View::e($tag['name']) ?>（<?= (int) $tag['post_count'] ?>件）</span>
-        <form method="post" action="/tag_rename.php" class="inline-form">
-            <input type="hidden" name="csrf_token" value="<?= View::e(Csrf::token()) ?>">
-            <input type="hidden" name="tag_id" value="<?= (int) $tag['id'] ?>">
-            <input type="text" name="name" value="<?= View::e($tag['name']) ?>" maxlength="50" required>
-            <button type="submit" class="button-secondary">名前を変更</button>
-        </form>
-        <?php if ($tag['post_count'] === 0): ?>
-        <form method="post" action="/tag_delete.php" class="inline-form">
-            <input type="hidden" name="csrf_token" value="<?= View::e(Csrf::token()) ?>">
-            <input type="hidden" name="tag_id" value="<?= (int) $tag['id'] ?>">
-            <button type="submit" class="button-secondary">削除</button>
-        </form>
-        <?php else: ?>
-        <span class="hint">削除は投稿の紐付けが0件のタグのみ可能です</span>
-        <?php endif; ?>
+    <li class="tag-manage-item">
+        <div class="tag-manage-name">#<?= View::e($tag['name']) ?>（<?= (int) $tag['post_count'] ?>件）</div>
+        <div class="tag-manage-actions">
+            <form method="post" action="/tag_rename.php" class="inline-form">
+                <input type="hidden" name="csrf_token" value="<?= View::e(Csrf::token()) ?>">
+                <input type="hidden" name="tag_id" value="<?= (int) $tag['id'] ?>">
+                <input type="text" name="name" value="<?= View::e($tag['name']) ?>" maxlength="50" required>
+                <button type="submit" class="button-secondary">名前を変更</button>
+            </form>
+            <?php if ($tag['post_count'] === 0): ?>
+            <form method="post" action="/tag_delete.php" class="inline-form">
+                <input type="hidden" name="csrf_token" value="<?= View::e(Csrf::token()) ?>">
+                <input type="hidden" name="tag_id" value="<?= (int) $tag['id'] ?>">
+                <button type="submit" class="button-secondary">削除</button>
+            </form>
+            <?php else: ?>
+            <span class="hint">削除は投稿の紐付けが0件のタグのみ可能です</span>
+            <?php endif; ?>
+        </div>
     </li>
     <?php endforeach; ?>
 </ul>
