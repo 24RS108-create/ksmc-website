@@ -39,7 +39,14 @@ final class ProfileController
             $errors[] = '表示名を入力してください。';
         } elseif (mb_strlen($displayName) > 100) {
             $errors[] = '表示名は100文字以内で入力してください。';
-        } elseif ($profileNote !== null && mb_strlen($profileNote) > 500) {
+        } elseif (
+            $profileNote !== null
+            && mb_strlen($profileNote) > 500
+            && $profileNote !== $user->profileNote
+        ) {
+            // 500文字制限（v0.4で2000文字から変更）導入前に保存された、より長いプロフィールを
+            // 持つ会員が、プロフィール欄以外（表示名等）だけを変更したい場合に保存できなくなる
+            // 問題を避けるため、既存の値から変更が無ければこの文字数チェックはスキップする。
             $errors[] = 'プロフィールは500文字以内で入力してください。';
         }
 

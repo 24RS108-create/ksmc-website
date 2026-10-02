@@ -274,7 +274,7 @@ final class PostController
         $user = Auth::requireLogin();
 
         $pagination = Paginator::resolve(
-            $this->requestedPage(),
+            Paginator::requestedPage(),
             Post::countByUserId($user->id),
             self::MY_POSTS_PER_PAGE
         );
@@ -288,17 +288,6 @@ final class PostController
         ]);
     }
 
-    /**
-     * クエリパラメータpageを読み取る。不正な値（数値でない・0以下等）は1として扱う
-     * （Paginator::resolve()側でも範囲チェックするため、ここでは大まかな検証のみ）。
-     */
-    private function requestedPage(): int
-    {
-        $page = (int) ($_GET['page'] ?? 1);
-
-        return $page > 0 ? $page : 1;
-    }
-
     // 管理者向け全投稿管理（FR-06）。マイページ（自分の投稿のみ）とは別に、
     // 全会員の全投稿（下書き含む）を一覧表示し削除できるようにする。1ページあたり20行。
     private const ADMIN_POST_LIST_PER_PAGE = 20;
@@ -308,7 +297,7 @@ final class PostController
         Auth::requireRole('admin');
 
         $pagination = Paginator::resolve(
-            $this->requestedPage(),
+            Paginator::requestedPage(),
             Post::countAll(),
             self::ADMIN_POST_LIST_PER_PAGE
         );

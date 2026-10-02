@@ -19,7 +19,7 @@ use App\Core\View;
 
 <h1><?= View::e($member->displayName) ?></h1>
 
-<?php if (!empty($member->profileNote)): ?>
+<?php if ($member->profileNote !== null): ?>
 <div class="profile-note-section">
     <?php if ($foldProfileNote): ?>
     <details class="profile-note-fold">

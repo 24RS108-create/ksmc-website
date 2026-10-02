@@ -33,6 +33,17 @@ final class Paginator
     }
 
     /**
+     * クエリパラメータpageを読み取る。不正な値（数値でない・0以下等）は1として扱う
+     * （resolve()側でも範囲チェックするため、ここでは大まかな検証のみ）。
+     */
+    public static function requestedPage(): int
+    {
+        $page = (int) ($_GET['page'] ?? 1);
+
+        return $page > 0 ? $page : 1;
+    }
+
+    /**
      * ページ番号を含むURLを組み立てる。$extraQueryでタグ絞り込み（tag_ids[]）や
      * 会員ページのid等、維持したい他のクエリパラメータを指定する。
      *

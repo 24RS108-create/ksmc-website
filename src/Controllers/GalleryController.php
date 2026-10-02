@@ -33,7 +33,7 @@ final class GalleryController
     public function showGallery(): void
     {
         $pagination = Paginator::resolve(
-            $this->requestedPage(),
+            Paginator::requestedPage(),
             Post::countPublishedByType('individual')
         );
 
@@ -50,7 +50,7 @@ final class GalleryController
     public function showBlog(): void
     {
         $pagination = Paginator::resolve(
-            $this->requestedPage(),
+            Paginator::requestedPage(),
             Post::countPublishedByType('official_blog')
         );
 
@@ -82,7 +82,7 @@ final class GalleryController
         $expandMoreTags = array_intersect($tagIds, $moreTagIds) !== [];
 
         $pagination = Paginator::resolve(
-            $this->requestedPage(),
+            Paginator::requestedPage(),
             empty($tagIds) ? 0 : Post::countPublishedByTagIds($tagIds)
         );
 
@@ -145,7 +145,7 @@ final class GalleryController
         }
 
         $pagination = Paginator::resolve(
-            $this->requestedPage(),
+            Paginator::requestedPage(),
             Post::countPublishedByUserId($member->id)
         );
 
@@ -164,17 +164,6 @@ final class GalleryController
             'pageBaseUrl' => '/member.php',
             'extraQuery' => ['id' => $member->id],
         ]);
-    }
-
-    /**
-     * クエリパラメータpageを読み取る。不正な値（数値でない・0以下等）は1として扱う
-     * （Paginator::resolve()側でも範囲チェックするため、ここでは大まかな検証のみ）。
-     */
-    private function requestedPage(): int
-    {
-        $page = (int) ($_GET['page'] ?? 1);
-
-        return $page > 0 ? $page : 1;
     }
 
     /**
