@@ -155,8 +155,9 @@ a {
     border-bottom: 3px solid var(--color-brand);
 }
 
-/* トップページ上部のレッド版ロゴ（モックアップ準拠）。背景幅（.content幅）に合わせて
-   横幅いっぱいに表示し、サイドバーとは重ならない（.contentの内側にあるため）。 */
+/* トップページ上部のバナー画像（ロゴ＋サイト説明文＋活動写真の一体画像）。
+   デザインサイズ900x300pxに対し実ファイルは2倍解像度（1800x600px）で高DPI画面にも対応。
+   .content-wideの内側幅（最大896px）いっぱいに表示する。 */
 .home-hero {
     margin: 0 0 24px;
     padding-bottom: 0;
@@ -165,7 +166,7 @@ a {
 
 .home-hero img {
     display: block;
-    width: 50%;
+    width: 100%;
     height: auto;
     margin: 0 auto;
 }

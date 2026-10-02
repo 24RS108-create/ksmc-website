@@ -6,7 +6,7 @@
  */
 ?>
 <h1 class="home-hero">
-    <img src="/assets/images/ksmc-logo-red.png" alt="九産模型愛好会">
+    <img src="/assets/images/ksmcwebbanner.webp" alt="九産模型愛好会ギャラリーサイト">
 </h1>
 
 <section>
