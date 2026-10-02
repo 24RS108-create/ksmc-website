@@ -101,6 +101,22 @@ EOF
 
 **この項目が完了するまで、5章・6章には着手しない。**
 
+## 4.7 エラー表示・セキュリティヘッダー設定の反映（2026-10-02 デプロイ前最終確認で追加）
+
+1〜4章までと同様、これはサーバー内部の設定変更であり外部への公開状態には影響しないため、**4.6章（顧問確認）を待たずに実施してよい**。
+
+- [ ] `deploy/php.d/99-ksmc-errors.ini`を配置（`display_errors=Off`等。未捕捉の例外やWarningがそのまま訪問者に表示される情報漏洩を防ぐ）
+  ```bash
+  sudo cp deploy/php.d/99-ksmc-errors.ini /etc/php.d/99-ksmc-errors.ini
+  sudo systemctl restart httpd
+  ```
+- [ ] 反映確認：`php -r "var_dump(ini_get('display_errors'), ini_get('log_errors'));"` → `display_errors`が空文字列（Off）、`log_errors`が`"1"`であること
+- [ ] `public/.htaccess`で追加したセキュリティヘッダー（`X-Frame-Options`等）が実際に付与されているか確認する
+  ```bash
+  curl -sI http://127.0.0.1/ | grep -i "x-frame-options\|x-content-type-options"
+  ```
+  何も表示されない場合、VirtualHostの`<Directory>`で`AllowOverride None`になっている可能性がある。`AllowOverride FileInfo`に変更するか、`.htaccess`の内容をVirtualHost設定の`<Directory>`ブロックへ直接移すこと
+
 ## 5. 本公開への切り替え 🚧 顧問確認完了まで保留
 
 VirtualHost・DocumentRoot・アップロード権限は4.5章で構築済みのため、**本公開時に残る作業は「ループバック限定を解除するだけ」**になっている。

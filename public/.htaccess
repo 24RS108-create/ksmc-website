@@ -1,0 +1,7 @@
+# 本番公開前の最終確認で追加した基本的なセキュリティヘッダー（NFR-02関連）。
+# mod_headersが無効な環境でもエラーにならないよう<IfModule>で保護する。
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
