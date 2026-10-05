@@ -75,7 +75,59 @@ final class LogoCompositor
             throw new \RuntimeException("画像の読み込みに失敗しました: {$path}");
         }
 
+        if ($info['mime'] === 'image/jpeg') {
+            $image = self::correctOrientation($image, $path);
+        }
+
         return $image;
+    }
+
+    /**
+     * スマートフォン等で撮影したjpgは、ピクセルデータ自体はセンサーの向きのまま未補正で保存され、
+     * EXIFのOrientationタグに「表示時にこう回転・反転してください」という指示だけが記録されている
+     * ことが多い。GDはこのタグを無視して生のピクセルデータをそのまま読み込むため、ロゴ合成前に
+     * ここで明示的に補正しておく必要がある（補正しないと、合成後に保存する画像にはEXIFが
+     * 引き継がれず、向きの情報が失われたまま未補正の向きで保存されてしまう）。
+     */
+    private static function correctOrientation(\GdImage $image, string $path): \GdImage
+    {
+        $exif = @exif_read_data($path);
+        $orientation = (int) ($exif['Orientation'] ?? 1);
+
+        switch ($orientation) {
+            case 2:
+                imageflip($image, IMG_FLIP_HORIZONTAL);
+                return $image;
+            case 3:
+                return self::rotate($image, 180);
+            case 4:
+                imageflip($image, IMG_FLIP_VERTICAL);
+                return $image;
+            case 5:
+                imageflip($image, IMG_FLIP_VERTICAL);
+                return self::rotate($image, -90);
+            case 6:
+                return self::rotate($image, -90);
+            case 7:
+                imageflip($image, IMG_FLIP_HORIZONTAL);
+                return self::rotate($image, -90);
+            case 8:
+                return self::rotate($image, 90);
+            default:
+                return $image;
+        }
+    }
+
+    private static function rotate(\GdImage $image, float $angle): \GdImage
+    {
+        $rotated = imagerotate($image, $angle, 0);
+        if ($rotated === false) {
+            return $image;
+        }
+
+        imagedestroy($image);
+
+        return $rotated;
     }
 
     /**
