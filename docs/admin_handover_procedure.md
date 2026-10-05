@@ -55,8 +55,8 @@
    `$HOME` に `ksmc_backup_YYYYMMDD.sql`（DBダンプ）と `ksmc_uploads_YYYYMMDD.tar.gz`（アップロード画像一式）が作成される。パスワードはMySQLの`ksmc_app`ユーザーのものを入力する。
 2. 手元PC（Windows）から `scp` でダウンロードする（PowerShellまたはGit Bashで実行）
    ```bash
-   scp <SSHユーザー名>@133.17.100.182:~/ksmc_backup_YYYYMMDD.sql .
-   scp <SSHユーザー名>@133.17.100.182:~/ksmc_uploads_YYYYMMDD.tar.gz .
+   scp staff@133.17.100.182:~/ksmc_backup_YYYYMMDD.sql .
+   scp staff@133.17.100.182:~/ksmc_uploads_YYYYMMDD.tar.gz .
    ```
    コマンド操作に不慣れな場合は、WinSCP等のGUIツールでSFTP接続し、同名のファイルをドラッグ＆ドロップで取得してもよい。
 3. ダウンロードが完了したら、サーバー上の一時ファイルを削除する（ディスク圧迫・情報漏洩リスクを避けるため）
