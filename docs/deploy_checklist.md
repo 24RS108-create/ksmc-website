@@ -101,24 +101,23 @@ EOF
 
 **この項目が完了したため、5章・6章に着手してよい。**
 
-## 4.7 エラー表示・セキュリティヘッダー設定の反映（2026-10-02 デプロイ前最終確認で追加）
+## 4.7 エラー表示・セキュリティヘッダー設定の反映（2026-10-02 デプロイ前最終確認で追加） ✅ 完了（2026-10-05）
 
 1〜4章までと同様、これはサーバー内部の設定変更であり外部への公開状態には影響しないため、**4.6章（顧問確認）を待たずに実施してよい**。
 
-- [ ] `deploy/php.d/99-ksmc-errors.ini`を配置（`display_errors=Off`等。未捕捉の例外やWarningがそのまま訪問者に表示される情報漏洩を防ぐ）
+- [x] `deploy/php.d/99-ksmc-errors.ini`を配置（`display_errors=Off`等。未捕捉の例外やWarningがそのまま訪問者に表示される情報漏洩を防ぐ）
   ```bash
   sudo cp deploy/php.d/99-ksmc-errors.ini /etc/php.d/99-ksmc-errors.ini
   sudo systemctl restart httpd
   ```
-- [ ] 反映確認：`php -r "var_dump(ini_get('display_errors'), ini_get('log_errors'));"` → `display_errors`が空文字列（Off）、`log_errors`が`"1"`であること
-- [ ] `public/.htaccess`で追加したセキュリティヘッダー（`X-Frame-Options`等）が実際に付与されているか確認する
+- [x] 反映確認：`php -r "var_dump(ini_get('display_errors'), ini_get('log_errors'));"` → `display_errors`が空文字列（Off）、`log_errors`が`"1"`であること（2026-10-05確認済み）
+- [x] `public/.htaccess`で追加したセキュリティヘッダー（`X-Frame-Options`等）が実際に付与されているか確認する（2026-10-05完了。`AllowOverride All`へ変更のうえ`X-Content-Type-Options`・`X-Frame-Options`とも付与を確認）
   ```bash
   curl -sI http://127.0.0.1/ | grep -i "x-frame-options\|x-content-type-options"
   ```
-  何も表示されない場合、VirtualHostの`<Directory>`で`AllowOverride None`になっている可能性がある。`AllowOverride FileInfo`に変更するか、`.htaccess`の内容をVirtualHost設定の`<Directory>`ブロックへ直接移すこと
 
   **注意**：`public/.htaccess`にはヘッダー設定（`Header`、`AllowOverride FileInfo`で有効化）に加えて、ドットファイル拒否ルール（`<FilesMatch>` + `Require`、`AllowOverride AuthConfig`で有効化）も含まれる。両方を一度に有効化するには`AllowOverride FileInfo AuthConfig`、または（この用途専用のVirtualHostであることを踏まえ）単純に`AllowOverride All`とするのが確実
-- [ ] ドットファイル拒否ルールが実際に有効か確認する（`.ht*`はhttpd.conf既定の`<Files ".ht*">`で`AllowOverride`に関わらず常に拒否されるため、確認には別名のテスト用ドットファイルを使うこと）
+- [x] ドットファイル拒否ルールが実際に有効か確認する（2026-10-05完了。`403`を確認）
   ```bash
   echo test | sudo tee /var/www/ksmc_web/public/.deploycheck > /dev/null
   curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1/.deploycheck   # 403が期待値（200ならAllowOverride未反映）
