@@ -69,14 +69,20 @@ EOF
   ```
   （`must_change_password=1`により初回ログイン時にパスワード変更が強制される）
 
-## 4. PHP設定の反映 ✅ 完了（2026-09-19）
+## 4. PHP設定の反映 ✅ 完了（2026-09-19、2026-10-05にphp-fpm再起動漏れを修正：教訓6参照）
+
+PHPは`php-fpm`経由で動作しているため、`/etc/php.d/`配下のiniファイルを反映するには**`httpd`ではなく`php-fpm`の再起動が必要**。下記は当初の手順（`httpd`再起動のみ）を修正済みのもの。
 
 - [x] `deploy/php.d/99-ksmc-uploads.ini`を配置
   ```bash
   sudo cp deploy/php.d/99-ksmc-uploads.ini /etc/php.d/99-ksmc-uploads.ini
   ```
-- [x] `sudo systemctl restart httpd`
-- [x] 反映確認：`php -r "echo ini_get('upload_max_filesize'), ' / ', ini_get('post_max_size');"` → `20M / 24M`
+- [x] `sudo systemctl restart php-fpm`（**`httpd`の再起動だけでは反映されない**。教訓6参照）
+- [x] 反映確認：CLIでの`php -r`確認はphp-fpm側の反映を保証しないため使わない。以下でphp-fpm自体の設定を確認する
+  ```bash
+  sudo php-fpm -i | grep -iE "upload_max_filesize|post_max_size"
+  ```
+  → `20M` / `24M`相当になっていること（2026-10-05確認済み：`post_max_size => 24M => 24M` / `upload_max_filesize => 20M => 20M`）
 
 ## 4.5 確認環境の構築（顧問確認用、外部非公開） ✅ 完了（2026-09-19）
 
@@ -103,7 +109,7 @@ EOF
 
 **この項目が完了したため、5章・6章に着手してよい。**
 
-## 4.7 エラー表示・セキュリティヘッダー設定の反映（2026-10-02 デプロイ前最終確認で追加） ✅ 完了（2026-10-05）
+## 4.7 エラー表示・セキュリティヘッダー設定の反映（2026-10-02 デプロイ前最終確認で追加） ✅ 完了（2026-10-05にphp-fpm再起動漏れを修正：教訓6参照）
 
 1〜4章までと同様、これはサーバー内部の設定変更であり外部への公開状態には影響しないため、**4.6章（顧問確認）を待たずに実施してよい**。
 
@@ -112,7 +118,12 @@ EOF
   sudo cp deploy/php.d/99-ksmc-errors.ini /etc/php.d/99-ksmc-errors.ini
   sudo systemctl restart httpd
   ```
-- [x] 反映確認：`php -r "var_dump(ini_get('display_errors'), ini_get('log_errors'));"` → `display_errors`が空文字列（Off）、`log_errors`が`"1"`であること（2026-10-05確認済み）
+- [x] **`sudo systemctl restart php-fpm`を追加で実行する**（教訓6参照。`httpd`再起動だけではphp-fpmワーカーに`display_errors=Off`が反映されない。2026-10-05時点でphp-fpmは2026-09-10起動のまま一度も再起動されておらず、このiniファイル自体がphp-fpmに未反映の状態だった）
+- [x] 反映確認：CLIでの`ini_get()`確認ではphp-fpm側の実際の反映を保証しない（教訓6参照）。以下いずれかで確認する
+  ```bash
+  sudo php-fpm -i | grep -iE "display_errors|log_errors"
+  ```
+  → `display_errors`が`Off`、`log_errors`が`On`になっていること（2026-10-05確認済み：`display_errors => Off => Off` / `log_errors => On => On`）
 - [x] `public/.htaccess`で追加したセキュリティヘッダー（`X-Frame-Options`等）が実際に付与されているか確認する（2026-10-05完了。`AllowOverride All`へ変更のうえ`X-Content-Type-Options`・`X-Frame-Options`とも付与を確認）
   ```bash
   curl -sI http://127.0.0.1/ | grep -i "x-frame-options\|x-content-type-options"
@@ -219,3 +230,22 @@ sudo systemctl start mysqld
 2. `ssl.conf`の`<VirtualHost _default_:443>`は、SSL証明書（`SSLCertificateFile`/`SSLCertificateKeyFile`）こそ本番ドメインの証明書に差し替え済みだったが、`DocumentRoot "/var/www/html"`の行が**コメントアウトされたまま**だった。そのためHTTPS経由でも同様にグローバルなデフォルトDocumentRootにフォールバックしていた。コメントを外し`/var/www/ksmc_web/public`へ変更、あわせて`ServerName`も実ドメインに設定して解消（`<Directory /var/www/ksmc_web/public>`の権限設定はパスが共通のため`ksmc-internal.conf`側の定義がそのまま適用された）。
 
 教訓：VirtualHostを`127.0.0.1`等の特定IPに限定してから後で解除する運用をとる場合、**`Listen`だけでなく`<VirtualHost>`宣言のIP/ポート指定自体も確認する**こと。また、SSL証明書をvhostに設定する際は、`SSLCertificateFile`等だけでなく**`DocumentRoot`・`ServerName`がコメントアウトされたままになっていないか**も必ず確認すること。
+
+### 教訓6：`/etc/php.d/`のini変更は`httpd`再起動では反映されない。`php-fpm`自体の再起動が必要
+
+会員が画像5枚程度（jpg）を添付して投稿しようとすると「不正なリクエストです」が表示される不具合から発覚。実際の原因は**アップロード上限（`post_max_size`）がデフォルト値`8M`のまま**で、5枚程度でも合計がそれを超え、PHPがリクエスト全体（CSRFトークンを含む`$_POST`）を空にしていたこと。
+
+このサーバーのPHPは`mpm_event` + `proxy_fcgi_module`経由、つまり**php-fpm**で動作している。`/etc/php.d/`配下のiniファイルはphp-fpmのワーカープロセスが起動する際に読み込まれるため、**`sudo systemctl restart httpd`では一切反映されない**。4章・4.7章の手順はいずれも`httpd`の再起動のみを行っていたため、`99-ksmc-uploads.ini`（`post_max_size=24M`等）も`99-ksmc-errors.ini`（`display_errors=Off`等）も、**配置した時点では一度もphp-fpmに反映されていなかった**（調査時点でphp-fpmは2026-09-10起動のまま一度も再起動されていないことを`systemctl status php-fpm`で確認）。
+
+さらに厄介なのは、**確認手順自体が誤った「反映済み」判定をしていた**点。`php -r "echo ini_get(...);"`はCLI版のPHPを都度新規プロセスで起動するため、その時点の`/etc/php.d/`の内容を正しく読み込み、見た目上は正しい値（`20M / 24M`、`display_errors`が`Off`等）を返す。しかしこれはCLI SAPIの話であり、**実際にWebリクエストを処理しているphp-fpmワーカーの設定を何も保証しない**。この食い違いに気づけたのは、ログの実測値（`exceeds the limit of 8388608 bytes` = デフォルトの8M）とCLIでの確認結果が矛盾していたことがきっかけだった。
+
+ログの調査過程でも把握しておくべき点：
+- php-fpmのエラーログは`httpd`のエラーログ（`/var/log/httpd/error_log`）ではなく、**`/etc/php-fpm.d/www.conf`の`php_admin_value[error_log]`で指定された場所**（このサーバーでは`/var/log/php-fpm/www-error.log`）に出力される
+- ログの日時書式は`[05-Oct-2026 12:18:16 UTC]`のように`-`区切り＋タイムゾーン付き。ロケール依存で曖昧な`grep`パターンだと空振りしうるので、まずファイル全体を見るのが確実
+
+対処・再発防止：
+```bash
+sudo systemctl restart php-fpm
+sudo php-fpm -i | grep -iE "post_max_size|upload_max_filesize|display_errors|log_errors"
+```
+今後`/etc/php.d/`配下のiniファイルを追加・変更する際は、**`httpd`と`php-fpm`の両方を再起動**し、確認は**CLIではなく`php-fpm -i`、または実際のHTTPリクエスト経由**で行うこと。
