@@ -78,6 +78,7 @@
 | 取得日 | 取得者 | 保管場所 | 備考 |
 |---|---|---|---|
 | 2026-09-25 | | `C:\Users\User\OneDrive - 九州産業大学\デスクトップ\課外活動\ksmc_web_backup` | 初回バックアップ（`ksmc_backup_20260925.sql` / `ksmc_uploads_20260925.tar.gz`） |
+| 2026-10-5 | | `C:\Users\User\OneDrive - 九州産業大学\デスクトップ\課外活動\ksmc_web_backup` | 公開前バックアップ（`ksmc_backup_20261005.sql` / `ksmc_uploads_20261005.tar.gz`） |
 | | | | |
 
 ## 6. 退会・卒業した会員の扱い（FR-11）
