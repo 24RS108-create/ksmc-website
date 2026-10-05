@@ -5,3 +5,10 @@
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
+
+# ドットファイル（.env・.git配下・.htaccess自体等）への直接アクセスを拒否する多層防御。
+# .envや.gitはpublic/の外（リポジトリルート）に置いており、DocumentRootがpublic/である限り
+# 本来アクセス不可能だが、設定誤り等への保険として明示的に拒否する。
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>

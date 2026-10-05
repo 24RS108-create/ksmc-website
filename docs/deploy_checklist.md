@@ -117,6 +117,14 @@ EOF
   ```
   何も表示されない場合、VirtualHostの`<Directory>`で`AllowOverride None`になっている可能性がある。`AllowOverride FileInfo`に変更するか、`.htaccess`の内容をVirtualHost設定の`<Directory>`ブロックへ直接移すこと
 
+  **注意**：`public/.htaccess`にはヘッダー設定（`Header`、`AllowOverride FileInfo`で有効化）に加えて、ドットファイル拒否ルール（`<FilesMatch>` + `Require`、`AllowOverride AuthConfig`で有効化）も含まれる。両方を一度に有効化するには`AllowOverride FileInfo AuthConfig`、または（この用途専用のVirtualHostであることを踏まえ）単純に`AllowOverride All`とするのが確実
+- [ ] ドットファイル拒否ルールが実際に有効か確認する（`.ht*`はhttpd.conf既定の`<Files ".ht*">`で`AllowOverride`に関わらず常に拒否されるため、確認には別名のテスト用ドットファイルを使うこと）
+  ```bash
+  echo test | sudo tee /var/www/ksmc_web/public/.deploycheck > /dev/null
+  curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1/.deploycheck   # 403が期待値（200ならAllowOverride未反映）
+  sudo rm /var/www/ksmc_web/public/.deploycheck
+  ```
+
 ## 5. 本公開への切り替え 🚧 顧問確認完了まで保留
 
 VirtualHost・DocumentRoot・アップロード権限は4.5章で構築済みのため、**本公開時に残る作業は「ループバック限定を解除するだけ」**になっている。
