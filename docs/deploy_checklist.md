@@ -10,19 +10,21 @@
 - [x] PHPアップロード上限の設定ファイル（`deploy/php.d/99-ksmc-uploads.ini`）：リポジトリに追加済み。本番サーバーへの実際の配置はこの章の作業として実施する
 - [x] 本番サーバーへのコード配置・DB初期化・確認環境の構築：2026-09-19に完了（詳細は1〜4.6章、教訓は10章）
 
-### 🛑 2026-10-22：PHP Critical脆弱性対応のため一時非公開中
+### ✅ 2026-10-22：PHP Critical脆弱性対応 完了（一時非公開→復旧）
 
 PHP公式（php-src GitHub Security Advisory）より、**認証不要のリモートコード実行（RCE）脆弱性2件**（CVSS v4 9.2 / Critical）が2026-10-21に公開された。
 
 - CVE-2026-109618（[GHSA-w8hw-w9fx-j79w](https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w)）：OOM発生時の終了処理に起因するメモリ破壊
 - CVE-2026-109619（[GHSA-6wmf-4rv5-p3rp](https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp)）：ワーカーに残留したグローバル状態の解放後使用（UAF）。`session.upload_progress`機能がmod_php・php-fpm双方で悪用実証済みと明記
 
-いずれも修正版は**PHP 8.3.36**（2026-10-22リリース）だが、本番で使用しているRHEL公式AppStreamリポジトリには本記録時点でまだ反映されていない（`dnf update php* --refresh`で確認済み、「行うべきことはありません」）。
+**対応の経緯**：
+- [x] 暫定緩和策：`session.upload_progress.enabled = 0`を`/etc/php.d/99-ksmc-security-hotfix.ini`に追加し、`php-fpm`再起動の上`php-fpm -i`で反映を確認（UAF側の実証済み経路を遮断）。害が無いため恒久的にこのまま残す
+- [x] OOM側（CVE-2026-109618）には有効な設定上の回避策が無いため、根本対策であるバージョンアップが反映されるまでの間、**サイトを一時非公開化**（`Listen`をループバック限定に戻す）
+- [x] 侵害調査：Webシェル探索・git差分・プロセス一覧・通信・SSH鍵/アカウント・php-fpmクラッシュログ・全期間（2026-09-19〜）のアクセスログを確認。**侵害・本脆弱性を狙った攻撃の形跡は確認されなかった**（詳細は教訓7参照）
+- [x] RHEL公式AppStreamリポジトリに修正版（**PHP 8.3.36**）が反映され（2026-10-22、公開から約1日）、`dnf update`で適用・`php-fpm`再起動・バージョン確認済み
+- [x] `Listen`の制限を解除し本公開を再開。内部疎通（`200`）・外部到達（VPN切断状態での実アクセス）とも確認済み
 
-**対応状況**：
-- [x] 暫定緩和策：`session.upload_progress.enabled = 0`を`/etc/php.d/99-ksmc-security-hotfix.ini`に追加し、`php-fpm`再起動の上`php-fpm -i`で反映を確認済み（UAF側の実証済み経路を遮断）
-- [x] OOM側（CVE-2026-109618）には有効な設定上の回避策が無いため、根本対策であるバージョンアップが本番リポジトリに反映されるまでの間、**サイトを一時非公開化**（`Listen`をループバック限定に戻す。手順は5章参照の逆順）
-- [ ] RHEL AppStreamへの8.3.36反映待ち。`sudo dnf update php* --refresh`で定期的に確認し、反映され次第アップデートの上、本公開を再開する（5章の手順で復帰）
+**教訓7（10章参照）**：この一連の対応を通じて、(1)アプリの実際のvhostはデフォルトの`access_log`ではなく`ksmc_access.log`/`ssl_access_log`に出力されており、調査時はログの実体を事前に確認する必要があったこと、(2)`/var/log/httpd/`はroot専用権限のため`sudo`付きでもワイルドカード展開には`sudo bash -c '...'`等の工夫が必要なこと、(3)Red Hat公式のCVEページ・CVSS評価はphp-src公式の一次情報と数値が異なることがある（スコアリング手法の違いによるもので、深刻度の実質的な差ではない）ことを記録しておく。
 
 ### ✅ 2026-10-05：顧問の最終確認完了・本公開済み
 
@@ -263,3 +265,12 @@ sudo systemctl restart php-fpm
 sudo php-fpm -i | grep -iE "post_max_size|upload_max_filesize|display_errors|log_errors"
 ```
 今後`/etc/php.d/`配下のiniファイルを追加・変更する際は、**`httpd`と`php-fpm`の両方を再起動**し、確認は**CLIではなく`php-fpm -i`、または実際のHTTPリクエスト経由**で行うこと。
+
+### 教訓7：PHP Critical脆弱性(CVE-2026-109618/109619)対応で判明した運用上の注意点
+
+2026-10-21にphp-src公式から認証不要RCE（CVSS v4 9.2）が2件公開された際の対応（詳細は0章の記録参照）を通じて判明した点。
+
+1. **アプリの実際のアクセスログは、Apacheのデフォルト`access_log`ではない。** `ksmc-internal.conf`・`ssl.conf`それぞれで`CustomLog`により`ksmc_access.log`・`ssl_access_log`に出力するよう設定されていた（デフォルトの`access_log`は空＝未使用のグローバルvhost用）。侵害調査の際、まずこれに気づかず空の`access_log`を見て「POSTの記録が無い」と誤認しかけた。ログを使った調査を行う際は、まず`CustomLog`の設定を確認し、実際にどのファイルに出力されているかを特定すること。
+2. **`/var/log/httpd/`はroot専用権限（`700`）。** `sudo grep /path/*`のようにワイルドカードを使うコマンドは、展開自体が`sudo`より前に一般ユーザー権限で行われるため、ディレクトリの中身を読めず展開に失敗し「そのようなファイルやディレクトリはありません」になる。`sudo bash -c '...'`のようにシェルごとroot権限で実行する必要がある。
+3. **Red Hat公式のCVEページとphp-src公式の深刻度評価は数値が異なることがある。** 今回、php-src側はCVSS v4で9.2（Critical）、Red Hat側はCVSS v3.1で8.1（Important）としていた。これはスコアリング手法（バージョン）の違いによるもので、どちらかが誤っているわけではない。深刻度を判断する際は、算出に使われたCVSSのバージョンも確認すること。
+4. **侵害有無の調査は複数の観点を組み合わせる必要がある。** 単独では決め手に欠ける（Webシェル探索だけ、ログだけ等）が、アップロードディレクトリの異形拡張子・git差分・プロセス一覧・通信・SSH鍵/アカウントの新規追加・php-fpmのクラッシュログ・アクセスログを横断的に確認することで、合理的な確証が得られた。
